@@ -1,10 +1,19 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Ignored default folder with query files
-/queries/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
+# Gradle build outputs
+.gradle/
+.kotlin/
+target/
+build/
+docs/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code (optional workspace settings)
+.vscode/
+
+# macOS
+.DS_Store
