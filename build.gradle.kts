@@ -3,9 +3,9 @@ plugins {
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.serialization") version "2.4.10"
     id("io.ktor.plugin") version "3.5.2"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 val logbackVersion = "1.6.1"
-
 
 group = "no.nav"
 version = "0.0.1"
@@ -23,8 +23,7 @@ dependencies {
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.serialization.kotlinx.json)
-    implementation("ch.qos.logback:logback-classic:${logbackVersion}")
-
+    implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
 }
