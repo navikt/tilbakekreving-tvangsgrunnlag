@@ -27,3 +27,27 @@ jobs:
       - name: Kjør ktlint
         run: |
           ./gradlew ktlintCheck
+
+  test:
+    name: JUnit-tester
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 25
+          cache: 'gradle'
+      - name: Kjør tester
+        run: |
+          ./gradlew test
+      - name: Publiser testrapport
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
