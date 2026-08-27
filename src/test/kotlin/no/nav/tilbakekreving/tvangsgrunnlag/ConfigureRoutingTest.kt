@@ -35,16 +35,16 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `GET hentDataFraTilbakekreving returns 200 med json-melding`() =
+    fun `GET hentDataFraSAF returns 200 med json-melding`() =
         testApplication {
             application { configureRouting() }
 
-            val response = client.get("/hentDataFraTilbakekreving")
+            val response = client.get("/hentDataFraSAF")
 
             assertEquals(HttpStatusCode.OK, response.status)
             assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
 
             val melding = Json.decodeFromString<Melding>(response.bodyAsText())
-            assertEquals(Melding("Hentet data fra tilbakekreving"), melding)
+            assertEquals(Melding("Hentet data fra SAF"), melding)
         }
 }
