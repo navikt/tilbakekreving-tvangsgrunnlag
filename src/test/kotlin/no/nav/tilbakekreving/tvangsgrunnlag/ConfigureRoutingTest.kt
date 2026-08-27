@@ -13,37 +13,38 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ConfigureRoutingTest {
+    @Test
+    fun `GET tvangsgrunnlag returns 200 med json-liste`() =
+        testApplication {
+            application { configureRouting() }
+
+            val response = client.get("/tvangsgrunnlag")
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
+
+            val tvangsgrunnlag = Json.decodeFromString<List<Tvangsgrunnlag>>(response.bodyAsText())
+            assertEquals(
+                listOf(
+                    Tvangsgrunnlag("1", "Tvangsgrunnlag nr 1", Priority.Low),
+                    Tvangsgrunnlag("2", "Tvangsgrunnlag nr 2", Priority.Medium),
+                    Tvangsgrunnlag("3", "Tvangsgrunnlag nr 3", Priority.High),
+                ),
+                tvangsgrunnlag,
+            )
+        }
 
     @Test
-    fun `GET tvangsgrunnlag returns 200 med json-liste`() = testApplication {
-        application { configureRouting() }
+    fun `GET hentDataFraTilbakekreving returns 200 med json-melding`() =
+        testApplication {
+            application { configureRouting() }
 
-        val response = client.get("/tvangsgrunnlag")
+            val response = client.get("/hentDataFraTilbakekreving")
 
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
 
-        val tvangsgrunnlag = Json.decodeFromString<List<Tvangsgrunnlag>>(response.bodyAsText())
-        assertEquals(
-            listOf(
-                Tvangsgrunnlag("1", "Tvangsgrunnlag nr 1", Priority.Low),
-                Tvangsgrunnlag("2", "Tvangsgrunnlag nr 2", Priority.Medium),
-                Tvangsgrunnlag("3", "Tvangsgrunnlag nr 3", Priority.High),
-            ),
-            tvangsgrunnlag,
-        )
-    }
-
-    @Test
-    fun `GET hentDataFraTilbakekreving returns 200 med json-melding`() = testApplication {
-        application { configureRouting() }
-
-        val response = client.get("/hentDataFraTilbakekreving")
-
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
-
-        val melding = Json.decodeFromString<Melding>(response.bodyAsText())
-        assertEquals(Melding("Hentet data fra tilbakekreving"), melding)
-    }
+            val melding = Json.decodeFromString<Melding>(response.bodyAsText())
+            assertEquals(Melding("Hentet data fra tilbakekreving"), melding)
+        }
 }
