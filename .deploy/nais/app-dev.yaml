@@ -1,0 +1,26 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: "tilbakekreving-tvangsgrunnlag"
+  namespace: "tilbake"
+  labels:
+    "team": "tilbake"
+
+spec:
+  maskinporten:
+    enabled: true
+    scopes:
+      exposes:
+        - accessibleForAll: false
+          allowedIntegrations:
+            - maskinporten
+          atMaxAge: 30
+          consumers:
+            - name: Skatteetaten
+              orgno: "974761076" # Finne ut orgnr til skatteetaten
+          delegationSource: altinn
+          enabled: true
+          name: scope.read
+          product: arbeid
+          separator: '/'
+          visibility: private
