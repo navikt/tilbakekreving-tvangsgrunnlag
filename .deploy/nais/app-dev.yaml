@@ -3,6 +3,9 @@ kind: "Application"
 metadata:
   name: "tilbakekreving-tvangsgrunnlag"
   namespace: "tilbake"
+  annotations:
+    nais.io/run-as-group: "65532" # nonroot https://github.com/GoogleContainerTools/distroless/issues/443
+    nais.io/run-as-user: "65532" # nonroot https://github.com/GoogleContainerTools/distroless/issues/443
   labels:
     "team": "tilbake"
 
@@ -17,7 +20,7 @@ spec:
           atMaxAge: 30
           consumers:
             - name: Skatteetaten
-              orgno: "974761076" # Finne ut orgnr til skatteetaten
+              orgno: "974761076"
           delegationSource: altinn
           enabled: true
           name: scope.read
