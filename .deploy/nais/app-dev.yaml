@@ -25,3 +25,5 @@ spec:
           product: arbeid
           separator: '/'
           visibility: private
+  ingresses:
+    - https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no
