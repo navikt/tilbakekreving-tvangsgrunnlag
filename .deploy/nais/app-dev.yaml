@@ -7,6 +7,7 @@ metadata:
     "team": "tilbake"
 
 spec:
+  image: {{image}}
   maskinporten:
     enabled: true
     scopes:
