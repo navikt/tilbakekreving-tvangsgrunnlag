@@ -17,7 +17,7 @@ spec:
           atMaxAge: 30
           consumers:
             - name: Skatteetaten
-              orgno: "974761076" # Finne ut orgnr til skatteetaten
+              orgno: "974761076"
           delegationSource: altinn
           enabled: true
           name: scope.read
