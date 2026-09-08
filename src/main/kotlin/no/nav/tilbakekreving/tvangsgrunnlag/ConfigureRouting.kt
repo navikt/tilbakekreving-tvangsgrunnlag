@@ -3,6 +3,7 @@ package no.nav.tilbakekreving.tvangsgrunnlag
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.authenticate
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
@@ -25,14 +26,16 @@ fun Application.configureRouting() {
     routing {
         staticResources("static", "static")
 
-        get("/tvangsgrunnlag") {
-            val tvangsgrunnlag =
-                listOf(
-                    Tvangsgrunnlag("1", "Tvangsgrunnlag nr 1", Priority.Low),
-                    Tvangsgrunnlag("2", "Tvangsgrunnlag nr 2", Priority.Medium),
-                    Tvangsgrunnlag("3", "Tvangsgrunnlag nr 3", Priority.High),
-                )
-            call.respond(tvangsgrunnlag)
+        authenticate(MASKINPORTEN) {
+            get("/tvangsgrunnlag") {
+                val tvangsgrunnlag =
+                    listOf(
+                        Tvangsgrunnlag("1", "Tvangsgrunnlag nr 1", Priority.Low),
+                        Tvangsgrunnlag("2", "Tvangsgrunnlag nr 2", Priority.Medium),
+                        Tvangsgrunnlag("3", "Tvangsgrunnlag nr 3", Priority.High),
+                    )
+                call.respond(tvangsgrunnlag)
+            }
         }
 
         get("/hentDataFraSAF") {
