@@ -6,6 +6,9 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 val logbackVersion = "1.6.1"
+val tokenValidationVersion = "5.0.30"
+val mockOauth2ServerVersion = "6.0.2"
+val pdfboxVersion = "3.0.8"
 
 group = "no.nav"
 version = "0.0.1"
@@ -21,9 +24,13 @@ dependencies {
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.core)
     implementation(ktorLibs.server.netty)
+    implementation(ktorLibs.server.auth)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
+    implementation("no.nav.security:token-validation-ktor-v3:$tokenValidationVersion")
+    implementation("org.apache.pdfbox:pdfbox:$pdfboxVersion")
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
+    testImplementation("no.nav.security:mock-oauth2-server:$mockOauth2ServerVersion")
 }
