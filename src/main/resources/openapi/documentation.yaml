@@ -1,0 +1,45 @@
+openapi: "3.0.3"
+info:
+  title: "tilbakekreving-tvangsgrunnlag"
+  description: "API for tvangsgrunnlag i tilbakekreving"
+  version: "0.0.1"
+paths:
+  /tvangsgrunnlag:
+    get:
+      summary: "Hent liste over tvangsgrunnlag"
+      responses:
+        "200":
+          description: "Liste over tvangsgrunnlag"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tvangsgrunnlag"
+  /hentDataFraSAF:
+    get:
+      summary: "Hent data fra SAF"
+      responses:
+        "200":
+          description: "Melding hentet fra SAF"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Melding"
+components:
+  schemas:
+    Tvangsgrunnlag:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [ Low, Medium, High, Vital ]
+    Melding:
+      type: object
+      properties:
+        melding:
+          type: string
