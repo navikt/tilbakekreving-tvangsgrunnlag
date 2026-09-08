@@ -21,7 +21,7 @@ spec:
               orgno: "974761076"
           delegationSource: altinn
           enabled: true
-          name: scope.read
+          name: "tvangsgrunnlag/read"
           product: arbeid
           separator: '/'
           visibility: private
