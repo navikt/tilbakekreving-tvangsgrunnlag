@@ -2,6 +2,7 @@ package no.nav.tilbakekreving.tvangsgrunnlag
 
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -11,12 +12,13 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.Priority
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.Tvangsgrunnlag
+import java.io.ByteArrayInputStream
+import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 private const val AUTH_HEADER_NAVN = "Authorization"
 private const val AUTH_SCHEME = "Bearer"
@@ -99,7 +101,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `GET tvangsgrunnlag med gyldig maskinporten-token returns 200 med json-liste`() =
+    fun `GET tvangsgrunnlag med gyldig maskinporten-token returns 200 med zip av 3 dummy-pdfer`() =
         testApplication {
             settOppTestApp()
 
@@ -110,16 +112,23 @@ class ConfigureRoutingTest {
                 }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
+            assertEquals(ContentType("application", "zip"), response.contentType()?.withoutParameters())
 
-            val tvangsgrunnlag = Json.decodeFromString<List<Tvangsgrunnlag>>(response.bodyAsText())
+            val zipFilnavn = mutableListOf<String>()
+            ZipInputStream(ByteArrayInputStream(response.bodyAsBytes())).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    zipFilnavn.add(entry.name)
+                    val pdfBytes = zip.readBytes()
+                    // "%PDF" er magic bytes som identifiserer en gyldig PDF-fil.
+                    assertTrue(pdfBytes.decodeToString(0, 4) == "%PDF", "Forventet gyldig PDF-innhold i ${entry.name}")
+                    entry = zip.nextEntry
+                }
+            }
+
             assertEquals(
-                listOf(
-                    Tvangsgrunnlag("1", "Tvangsgrunnlag nr 1", Priority.Low),
-                    Tvangsgrunnlag("2", "Tvangsgrunnlag nr 2", Priority.Medium),
-                    Tvangsgrunnlag("3", "Tvangsgrunnlag nr 3", Priority.High),
-                ),
-                tvangsgrunnlag,
+                listOf("tvangsgrunnlag-1.pdf", "tvangsgrunnlag-2.pdf", "tvangsgrunnlag-3.pdf"),
+                zipFilnavn,
             )
         }
 
