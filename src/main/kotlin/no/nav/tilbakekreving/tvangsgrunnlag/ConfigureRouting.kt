@@ -5,6 +5,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -24,6 +25,8 @@ fun Application.configureRouting() {
 
     routing {
         staticResources("static", "static")
+
+        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
 
         get("/tvangsgrunnlag") {
             val tvangsgrunnlag =
