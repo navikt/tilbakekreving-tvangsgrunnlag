@@ -16,6 +16,5 @@ interface SafClient {
 }
 
 class MidlertidigSafClient : SafClient {
-    override fun hentPdf(dokument: DokumentReferanse): ByteArray =
-        "%PDF-1.4 midlertidig-innhold for ${dokument.dokumentId}".toByteArray()
+    override fun hentPdf(dokument: DokumentReferanse): ByteArray = "%PDF-1.4 midlertidig-innhold for ${dokument.dokumentId}".toByteArray()
 }

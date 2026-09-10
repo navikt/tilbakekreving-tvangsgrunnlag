@@ -41,7 +41,13 @@ class ConfigureRoutingTest {
         }
         """.trimIndent()
 
-    private fun testService() = TvangsgrunnlagService(MidlertidigTilbakelosningClient(), MidlertidigSkeKravClient(), MidlertidigSafClient(), MidlertidigJoarkClient())
+    private fun testService() =
+        TvangsgrunnlagService(
+            MidlertidigTilbakelosningClient(),
+            MidlertidigSkeKravClient(),
+            MidlertidigSafClient(),
+            MidlertidigJoarkClient(),
+        )
 
     @Test
     fun `POST tvangsgrunnlag returner 200 og zip for kjent krav`() =
