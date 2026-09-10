@@ -1,16 +1,13 @@
 package no.nav.tilbakekreving.tvangsgrunnlag
 
-import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import kotlinx.serialization.json.Json
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
@@ -129,21 +126,5 @@ class ConfigureRoutingTest {
                 }
 
             assertEquals(HttpStatusCode.NotFound, response.status)
-        }
-
-    @Test
-    fun `GET hentDataFraSAF returns 200 med json-melding`() =
-        testApplication {
-            application {
-                configureRouting(testService())
-            }
-
-            val response = client.get("/hentDataFraSAF")
-
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
-
-            val melding = Json.decodeFromString<Melding>(response.bodyAsText())
-            assertEquals(Melding("Hentet data fra SAF"), melding)
         }
 }

@@ -15,7 +15,6 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
-import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
@@ -84,10 +83,6 @@ fun Application.configureRouting(
             } catch (e: TvangsgrunnlagIkkeFunnetException) {
                 call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
             }
-        }
-
-        get("/hentDataFraSAF") {
-            call.respond(Melding("Hentet data fra SAF"))
         }
     }
 }

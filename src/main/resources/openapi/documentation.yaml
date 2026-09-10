@@ -44,20 +44,18 @@ paths:
                 format: binary
         "400":
           description: "Ugyldig forespørsel"
-        "404":
-          description: "Tvangsgrunnlag ikke funnet"
-        "500":
-          description: "Intern serverfeil"
-  /hentDataFraSAF:
-    get:
-      summary: "Hent data fra SAF"
-      responses:
-        "200":
-          description: "Melding hentet fra SAF"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Melding"
+        "404":
+          description: "Tvangsgrunnlag ikke funnet"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Melding"
+        "500":
+          description: "Intern serverfeil"
 components:
   schemas:
     TvangsgrunnlagRequest:
