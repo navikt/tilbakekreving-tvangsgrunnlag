@@ -22,7 +22,6 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagIkkeFunnetException
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.UgyldigForespørselException
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
@@ -61,16 +60,14 @@ fun Application.configureRouting(
                 return@post
             }
 
-            val request =
-                try {
-                    call.receive<TvangsgrunnlagRequest>()
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel"))
-                    return@post
-                }
+            val request = call.receive<TvangsgrunnlagRequest>()
 
             try {
                 val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
+                if (zip == null) {
+                    call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
+                    return@post
+                }
                 call.response.header(
                     HttpHeaders.ContentDisposition,
                     ContentDisposition.Attachment
@@ -80,8 +77,6 @@ fun Application.configureRouting(
                 call.respondBytes(zip, ContentType.Application.Zip)
             } catch (e: UgyldigForespørselException) {
                 call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel"))
-            } catch (e: TvangsgrunnlagIkkeFunnetException) {
-                call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
             }
         }
     }

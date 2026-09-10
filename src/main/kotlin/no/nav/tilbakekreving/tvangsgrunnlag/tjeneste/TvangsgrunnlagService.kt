@@ -5,7 +5,6 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.SafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.SkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.DokumentReferanse
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagIkkeFunnetException
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.UgyldigForespørselException
 import org.slf4j.LoggerFactory
@@ -29,22 +28,9 @@ class TvangsgrunnlagService(
 ) {
     private val logger = LoggerFactory.getLogger(TvangsgrunnlagService::class.java)
 
-    fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray {
+    /** Returnerer null dersom tvangsgrunnlaget ikke finnes (eller ikke har dokumenter etter fraOgMedDato). */
+    fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
         val fraOgMedDato = validerOgHentFraOgMedDato(request)
-
-        val registrertITilbakelosningen =
-            tilbakelosningClient.finnesKrav(
-                request.skyldner,
-                request.oppdragsgiversKravidentifikator,
-                request.skatteetatensKravidentifikator,
-            )
-        val registrertISkeKrav =
-            !registrertITilbakelosningen && skeKravClient.finnesKravidentifikator(request.skatteetatensKravidentifikator)
-
-        if (!registrertITilbakelosningen && !registrertISkeKrav) {
-            loggIkkeFunnet(request, "krav ikke registrert i tilbakeløsningen eller sokos-ske-krav")
-            throw TvangsgrunnlagIkkeFunnetException("Tvangsgrunnlag ikke funnet")
-        }
 
         val alleDokumenter =
             tilbakelosningClient.hentDokumenter(
@@ -53,11 +39,12 @@ class TvangsgrunnlagService(
                 request.skatteetatensKravidentifikator,
             )
         val dokumenterEtterDato =
-            alleDokumenter.filter { fraOgMedDato == null || !it.dato.isBefore(fraOgMedDato) }
+            alleDokumenter.filter { fraOgMedDato == null || !it.sendtDato.isBefore(fraOgMedDato) }
 
         if (dokumenterEtterDato.isEmpty()) {
-            loggIkkeFunnet(request, "ingen tilbakekrevingsdokumenter funnet i tilbakeløsningen")
-            throw TvangsgrunnlagIkkeFunnetException("Tvangsgrunnlag ikke funnet")
+            val registrertISkeKrav = skeKravClient.finnesKravidentifikator(request.skatteetatensKravidentifikator)
+            loggIkkeFunnet(request, registrertISkeKrav)
+            return null
         }
 
         val zip = zipDokumenter(dokumenterEtterDato)
@@ -69,7 +56,7 @@ class TvangsgrunnlagService(
         // (Klientid/Korrelasjonsid), hvilket krav/skyldner det gjaldt og hvilke dokumenter som
         // ble utlevert. Avklar med sikkerhet/arkitektur hvilken audit-logg-kanal som skal brukes.
 
-        dokumenterEtterDato.forEach { statistikk.registrerUtlevering(it.dokumentId) }
+        dokumenterEtterDato.forEach { statistikk.registrerUtlevering("${it.journalpostId}-${it.dokumentInfoId}") }
 
         return zip
     }
@@ -103,7 +90,7 @@ class TvangsgrunnlagService(
         ZipOutputStream(byteArrayOutputStream).use { zipOutputStream ->
             dokumenter.forEach { dokument ->
                 val pdfBytes = safClient.hentPdf(dokument)
-                zipOutputStream.putNextEntry(ZipEntry("${dokument.dokumentId}.pdf"))
+                zipOutputStream.putNextEntry(ZipEntry("${dokument.journalpostId}-${dokument.dokumentInfoId}.pdf"))
                 zipOutputStream.write(pdfBytes)
                 zipOutputStream.closeEntry()
             }
@@ -113,7 +100,7 @@ class TvangsgrunnlagService(
 
     private fun loggIkkeFunnet(
         request: TvangsgrunnlagRequest,
-        aarsak: String,
+        registrertISkeKrav: Boolean,
     ) {
         // NB: Logger bevisst hvilke kravidentifikatorer/skyldner SKE spurte om, jf. krav i punkt 2.
         // TODO: skyldner kan være et fødselsnummer/organisasjonsnummer (PII) - avklar om dette
@@ -121,11 +108,12 @@ class TvangsgrunnlagService(
         // tilgangskontroll (f.eks. sikker logg/audit-logg), før dette går til produksjon.
         logger.warn(
             "Fant ikke tvangsgrunnlag for skyldner={} oppdragsgiversKravidentifikator={} " +
-                "skatteetatensKravidentifikator={}: {}",
+                "skatteetatensKravidentifikator={}: ingen tilbakekrevingsdokumenter funnet i tilbakeløsningen " +
+                "(registrertISkeKrav={})",
             request.skyldner,
             request.oppdragsgiversKravidentifikator,
             request.skatteetatensKravidentifikator,
-            aarsak,
+            registrertISkeKrav,
         )
     }
 }

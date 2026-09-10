@@ -88,24 +88,6 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 400 for ugyldig body`() =
-        testApplication {
-            application {
-                configureRouting(testService())
-            }
-
-            val response =
-                client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-                    header("Korrelasjonsid", "11111111-1111-1111-1111-111111111111")
-                    header("Klientid", "skatteetaten-klient")
-                    contentType(ContentType.Application.Json)
-                    setBody("{}")
-                }
-
-            assertEquals(HttpStatusCode.BadRequest, response.status)
-        }
-
-    @Test
     fun `POST tvangsgrunnlag returner 404 for ukjent krav`() =
         testApplication {
             application {

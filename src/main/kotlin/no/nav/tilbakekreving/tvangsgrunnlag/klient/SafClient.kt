@@ -19,10 +19,11 @@ interface SafClient {
 class MidlertidigSafClient : SafClient {
     override fun hentPdf(dokument: DokumentReferanse): ByteArray =
         byggEksempelPdf(
-            tittel = dokument.tittel,
+            tittel = "Tilbakekrevingsdokument",
             linjer =
                 listOf(
-                    "DokumentId: ${dokument.dokumentId}",
+                    "JournalpostId: ${dokument.journalpostId}",
+                    "DokumentInfoId: ${dokument.dokumentInfoId}",
                     "Dette er et eksempeldokument brukt til å kontrollere at zip-utpakking og PDF-visning fungerer.",
                     "Testinnhold frem til ekte SAF-integrasjon er på plass, se TODO i SafClient.kt.",
                 ),

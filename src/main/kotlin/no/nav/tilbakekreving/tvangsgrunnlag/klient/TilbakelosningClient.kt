@@ -1,7 +1,6 @@
 package no.nav.tilbakekreving.tvangsgrunnlag.klient
 
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.DokumentReferanse
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.DokumentType
 import java.time.LocalDate
 
 // Klient mot tilbakeløsningen (tilbakekrevingsapplikasjonen), som er kilden til krav- og
@@ -15,14 +14,9 @@ import java.time.LocalDate
 //  - Erstatte den midlertidige implementasjonen med en ekte HTTP-klient (Ktor HttpClient) med
 //    timeout-/retry-håndtering og feilmapping
 interface TilbakelosningClient {
-    // Sjekker om skyldner, oppdragsgiversKravidentifikator og skatteetatensKravidentifikator er registrert på samme krav.
-    fun finnesKrav(
-        skyldner: String,
-        oppdragsgiversKravidentifikator: String,
-        skatteetatensKravidentifikator: String,
-    ): Boolean
-
     // Henter tilbakekrevingsdokumenter (vedtak/endringsvedtak) registrert på kravet.
+    // Returnerer tom liste dersom kravet, eller dokumenter på det, ikke finnes - endepunktet
+    // svarer da 404 uten at klienten trenger en egen eksistenssjekk.
     fun hentDokumenter(
         skyldner: String,
         oppdragsgiversKravidentifikator: String,
@@ -31,23 +25,17 @@ interface TilbakelosningClient {
 }
 
 class MidlertidigTilbakelosningClient : TilbakelosningClient {
-    override fun finnesKrav(
-        skyldner: String,
-        oppdragsgiversKravidentifikator: String,
-        skatteetatensKravidentifikator: String,
-    ): Boolean = KJENTE_KRAV.contains(Triple(skyldner, oppdragsgiversKravidentifikator, skatteetatensKravidentifikator))
-
     override fun hentDokumenter(
         skyldner: String,
         oppdragsgiversKravidentifikator: String,
         skatteetatensKravidentifikator: String,
     ): List<DokumentReferanse> {
-        if (!finnesKrav(skyldner, oppdragsgiversKravidentifikator, skatteetatensKravidentifikator)) {
+        if (!KJENTE_KRAV.contains(Triple(skyldner, oppdragsgiversKravidentifikator, skatteetatensKravidentifikator))) {
             return emptyList()
         }
         return listOf(
-            DokumentReferanse("dok-1", DokumentType.VEDTAK, "Vedtak om tilbakekreving", LocalDate.of(2024, 1, 10)),
-            DokumentReferanse("dok-2", DokumentType.ENDRINGSVEDTAK, "Endringsvedtak", LocalDate.of(2024, 6, 15)),
+            DokumentReferanse("111111111", "1", LocalDate.of(2024, 1, 10)),
+            DokumentReferanse("222222222", "1", LocalDate.of(2024, 6, 15)),
         )
     }
 
