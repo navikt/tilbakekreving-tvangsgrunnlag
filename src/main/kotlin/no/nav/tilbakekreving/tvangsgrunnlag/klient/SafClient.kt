@@ -59,6 +59,7 @@ class MidlertidigSafClient : SafClient {
             )
 
         val ut = ByteArrayOutputStream()
+
         fun skriv(tekst: String) = ut.write(tekst.toByteArray(Charsets.ISO_8859_1))
 
         skriv("%PDF-1.4\n")
