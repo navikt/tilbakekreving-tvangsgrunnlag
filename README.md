@@ -51,3 +51,18 @@ henvendelse/utlevert dokument. Merket med `TODO` i koden.
 Swagger UI lokalt: http://localhost:8080/swagger
 
 Swagger UI i preprod: https://tilbakekreving-tvangsgrunnlag.dev.intern.nav.no/swagger
+
+## Teste med Postman
+
+En ferdig Postman-request ligger i [`tvangsgrunnlag.postman_collection.json`](tvangsgrunnlag.postman_collection.json),
+med korrekte headere og et kjent testkrav.
+
+1. Start appen lokalt: `./gradlew run`
+2. Åpne Postman, klikk **Import** øverst til venstre
+3. Velg **File** og pek på `tvangsgrunnlag.postman_collection.json` i repoet
+4. Klikk **Import** — collection'en `tilbakekreving-tvangsgrunnlag` dukker opp i sidepanelet
+5. Åpne requesten "Hent tvangsgrunnlag (kjent krav)"
+6. Trykk på pilen ved siden av **Send**-knappen og velg **Send and Download**
+7. Velg hvor zip-fila skal lagres
+
+Forventet resultat: status **200 OK** og en nedlastet zip med `dok-1.pdf` og `dok-2.pdf`.
