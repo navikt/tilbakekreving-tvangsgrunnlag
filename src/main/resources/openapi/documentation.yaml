@@ -1,43 +1,88 @@
-openapi: "3.0.3"
+openapi: 3.0.3
 info:
-  title: "tilbakekreving-tvangsgrunnlag"
-  description: "API for tvangsgrunnlag i tilbakekreving"
-  version: "0.0.1"
+  title: "Tvangsgrunnlag API"
+  description: "API for å hente tilbakekrevingsvedtak og eventuelle endringsvedtak, som er grunnlaget for et spesifikt innkrevingsoppdrag"
+  version: "1.0.0"
 paths:
-  /tvangsgrunnlag:
-    get:
-      summary: "Hent liste over tvangsgrunnlag"
+  /api/tilbakekreving/tvangsgrunnlag/v1:
+    post:
+      summary: "Hent tvangsgrunnlag i en tilbakekrevingssak"
+      description: "Returnerer en liste av vedtaksdokumenter på PDF-format som tilsvarer angitt kravinformasjon"
+      operationId: hentTvangsgrunnlag
+      parameters:
+        - name: Korrelasjonsid
+          in: header
+          required: true
+          description: "Identifikator for sporing av kall. Må være en gyldig UUID, og skal være unik ved hvert kall til tjenesten."
+          schema:
+            type: string
+        - name: Klientid
+          in: header
+          required: true
+          description: "Identifiserer kallende system hos Skatteetaten."
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TvangsgrunnlagRequest"
       responses:
         "200":
-          description: "Liste over tvangsgrunnlag"
-          content:
-            application/json:
+          description: "ZIP-fil som inneholder en eller flere dokumenter (i pdf-format)"
+          headers:
+            Content-Disposition:
+              description: "Filnavn på zip-fila"
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Tvangsgrunnlag"
-  /hentDataFraSAF:
-    get:
-      summary: "Hent data fra SAF"
-      responses:
-        "200":
-          description: "Melding hentet fra SAF"
+                type: string
+                example: 'attachment; filename="tvangsgrunnlag.zip"'
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: "Ugyldig forespørsel"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Melding"
+        "404":
+          description: "Tvangsgrunnlag ikke funnet"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Melding"
+        "500":
+          description: "Intern serverfeil"
 components:
   schemas:
-    Tvangsgrunnlag:
+    TvangsgrunnlagRequest:
       type: object
+      required:
+        - skyldner
+        - oppdragsgiversKravidentifikator
+        - skatteetatensKravidentifikator
       properties:
-        id:
+        skyldner:
           type: string
-        description:
+          description: "Identifikator for skyldner (f.eks. fødselsnummer eller organisasjonsnummer)"
+          example: "12345678901"
+        oppdragsgiversKravidentifikator:
           type: string
-        priority:
+          description: "Oppdragsgivers kravidentifikator"
+          example: "NAV-KRAV-2024-001"
+        skatteetatensKravidentifikator:
           type: string
-          enum: [ Low, Medium, High, Vital ]
+          format: uuid
+          description: "Skatteetatens kravidentifikator (UUID)"
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        fraOgMedDato:
+          type: string
+          format: date
+          description: "Angir fra og med dato for vedtaksdokumentene som skal returneres. Hvis denne ikke er angitt vil alle dokumentene bli returnert."
+          example: "2026-04-17"
     Melding:
       type: object
       properties:
