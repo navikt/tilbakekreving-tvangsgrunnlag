@@ -66,3 +66,18 @@ med korrekte headere og et kjent testkrav.
 7. Velg hvor zip-fila skal lagres
 
 Forventet resultat: status **200 OK** og en nedlastet zip med `dok-1.pdf` og `dok-2.pdf`.
+
+## Arkitektur
+```mermaid
+sequenceDiagram
+    Skatteetaten->>+TvangsgrunnlagAPI: Request med informasjon om kravet
+    TvangsgrunnlagAPI->>+Tilbakekreving-backend: Spør etter krav som matcher ID
+    Tilbakekreving-backend->>+TvangsgrunnlagAPI: Svarer med fagsak Id, kanskje med info om tema
+    TvangsgrunnlagAPI->>+SAF: Henter ut journalposter som gjelder fagsak
+    SAF->>+TvangsgrunnlagAPI: Liste over relevante dokumenter
+    loop for hvert dokument
+        TvangsgrunnlagAPI->>+SAF: Hent dokument for dokumentId
+        SAF->>+TvangsgrunnlagAPI: Dokument
+    end
+    TvangsgrunnlagAPI->>+Skatteetaten: Sender PDF-dokumenter som ZIP-fil
+```
