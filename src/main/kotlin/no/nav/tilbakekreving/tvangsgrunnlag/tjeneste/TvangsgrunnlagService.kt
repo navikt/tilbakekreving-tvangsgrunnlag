@@ -9,8 +9,6 @@ import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.UgyldigForespørselException
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
-import java.time.LocalDate
-import java.time.format.DateTimeParseException
 import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -30,7 +28,8 @@ class TvangsgrunnlagService(
 
     /** Returnerer null dersom tvangsgrunnlaget ikke finnes (eller ikke har dokumenter etter fraOgMedDato). */
     fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
-        val fraOgMedDato = validerOgHentFraOgMedDato(request)
+        validerRequest(request)
+        val fraOgMedDato = request.fraOgMedDato
 
         val alleDokumenter =
             tilbakelosningClient.hentDokumenter(
@@ -39,7 +38,7 @@ class TvangsgrunnlagService(
                 request.skatteetatensKravidentifikator,
             )
         val dokumenterEtterDato =
-            alleDokumenter.filter { fraOgMedDato == null || !it.sendtDato.isBefore(fraOgMedDato) }
+            alleDokumenter.filter { fraOgMedDato == null || it.sendtDato >= fraOgMedDato }
 
         if (dokumenterEtterDato.isEmpty()) {
             val registrertISkeKrav = skeKravClient.finnesKravidentifikator(request.skatteetatensKravidentifikator)
@@ -61,7 +60,7 @@ class TvangsgrunnlagService(
         return zip
     }
 
-    private fun validerOgHentFraOgMedDato(request: TvangsgrunnlagRequest): LocalDate? {
+    private fun validerRequest(request: TvangsgrunnlagRequest) {
         if (request.skyldner.isBlank() ||
             request.oppdragsgiversKravidentifikator.isBlank() ||
             request.skatteetatensKravidentifikator.isBlank()
@@ -73,16 +72,6 @@ class TvangsgrunnlagService(
 
         runCatching { UUID.fromString(request.skatteetatensKravidentifikator) }
             .getOrElse { throw UgyldigForespørselException("skatteetatensKravidentifikator må være en gyldig UUID") }
-
-        val fraOgMedDato = request.fraOgMedDato
-        if (fraOgMedDato.isNullOrBlank()) {
-            return null
-        }
-        return try {
-            LocalDate.parse(fraOgMedDato)
-        } catch (e: DateTimeParseException) {
-            throw UgyldigForespørselException("fraOgMedDato må være på formatet yyyy-MM-dd")
-        }
     }
 
     private fun zipDokumenter(dokumenter: List<DokumentReferanse>): ByteArray {

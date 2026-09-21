@@ -24,6 +24,7 @@ dependencies {
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.swagger)
     implementation(ktorLibs.serialization.kotlinx.json)
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)

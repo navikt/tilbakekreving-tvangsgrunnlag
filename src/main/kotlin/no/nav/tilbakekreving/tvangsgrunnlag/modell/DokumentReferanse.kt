@@ -1,6 +1,6 @@
 package no.nav.tilbakekreving.tvangsgrunnlag.modell
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Referanse til et tilbakekrevingsdokument (vedtak eller endringsvedtak) i SAF.

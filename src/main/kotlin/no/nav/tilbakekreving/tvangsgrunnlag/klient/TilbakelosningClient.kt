@@ -1,7 +1,7 @@
 package no.nav.tilbakekreving.tvangsgrunnlag.klient
 
+import kotlinx.datetime.LocalDate
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.DokumentReferanse
-import java.time.LocalDate
 
 // Klient mot tilbakeløsningen (tilbakekrevingsapplikasjonen), som er kilden til krav- og
 // dokumentinformasjon.
@@ -34,8 +34,8 @@ class MidlertidigTilbakelosningClient : TilbakelosningClient {
             return emptyList()
         }
         return listOf(
-            DokumentReferanse("111111111", "1", LocalDate.of(2024, 1, 10)),
-            DokumentReferanse("222222222", "1", LocalDate.of(2024, 6, 15)),
+            DokumentReferanse("111111111", "1", LocalDate(2024, 1, 10)),
+            DokumentReferanse("222222222", "1", LocalDate(2024, 6, 15)),
         )
     }
 

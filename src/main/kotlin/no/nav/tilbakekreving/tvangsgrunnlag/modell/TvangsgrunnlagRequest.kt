@@ -1,5 +1,6 @@
 package no.nav.tilbakekreving.tvangsgrunnlag.modell
 
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
@@ -11,5 +12,5 @@ data class TvangsgrunnlagRequest(
     val skyldner: String,
     val oppdragsgiversKravidentifikator: String,
     val skatteetatensKravidentifikator: String,
-    val fraOgMedDato: String? = null,
+    val fraOgMedDato: LocalDate? = null,
 )
