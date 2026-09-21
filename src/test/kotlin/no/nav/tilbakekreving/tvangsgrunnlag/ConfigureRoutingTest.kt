@@ -50,7 +50,7 @@ class ConfigureRoutingTest {
     fun `POST tvangsgrunnlag returner 200 og zip for kjent krav`() =
         testApplication {
             application {
-                configureRouting(testService())
+                configureRouting(tvangsgrunnlagService = testService())
             }
 
             val response =
@@ -75,7 +75,7 @@ class ConfigureRoutingTest {
     fun `POST tvangsgrunnlag returner 400 for manglende header`() =
         testApplication {
             application {
-                configureRouting(testService())
+                configureRouting(tvangsgrunnlagService = testService())
             }
 
             val response =
@@ -91,7 +91,7 @@ class ConfigureRoutingTest {
     fun `POST tvangsgrunnlag returner 404 for ukjent krav`() =
         testApplication {
             application {
-                configureRouting(testService())
+                configureRouting(tvangsgrunnlagService = testService())
             }
 
             val response =

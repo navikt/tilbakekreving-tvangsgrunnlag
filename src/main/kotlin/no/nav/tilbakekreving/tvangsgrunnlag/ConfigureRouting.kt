@@ -8,6 +8,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.http.content.staticResources
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.request.header
@@ -15,8 +16,12 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.Serializable
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
@@ -25,6 +30,7 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClie
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.UgyldigForespørselException
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
 
 @Serializable
 data class Melding(
@@ -32,22 +38,31 @@ data class Melding(
 )
 
 fun Application.configureRouting(
+    prometheusRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
     tvangsgrunnlagService: TvangsgrunnlagService =
         TvangsgrunnlagService(
             MidlertidigTilbakelosningClient(),
             MidlertidigSkeKravClient(),
             MidlertidigSafClient(),
             MidlertidigJoarkClient(),
+            UtleveringsStatistikk(prometheusRegistry),
         ),
 ) {
     install(ContentNegotiation) {
         json()
+    }
+    install(MicrometerMetrics) {
+        registry = prometheusRegistry
     }
 
     routing {
         staticResources("static", "static")
 
         swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
+
+        get("/metrics") {
+            call.respondText(prometheusRegistry.scrape())
+        }
 
         post("/api/tilbakekreving/tvangsgrunnlag/v1") {
             // TODO: Kall er foreløpig ikke sikret med Maskinporten/JWT-validering. Dette må på

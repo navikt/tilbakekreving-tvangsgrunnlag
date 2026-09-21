@@ -27,6 +27,10 @@ Flyten i `TvangsgrunnlagService`:
 5. Registrerer utlevering i Joark
 6. Logger statistikk over utleverte vedtak
 
+Statistikk (antall utleveringer per dokument) eksponeres som Prometheus-metrikk
+(`tvangsgrunnlag_utlevering_total`) på `GET /metrics`, i tillegg til strukturerte
+loggmeldinger til Loki.
+
 ## Struktur
 
 ```

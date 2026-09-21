@@ -1,26 +1,39 @@
 package no.nav.tilbakekreving.tvangsgrunnlag.tjeneste
 
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.slf4j.LoggerFactory
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Utgangspunkt for statistikk over hvor mange ganger et vedtak er utlevert til Skatteetaten.
+ * Statistikk over hvor mange ganger et vedtak er utlevert til Skatteetaten.
  *
  * Vi bruker Loki til logger i dag, så hovedmekanismen er en strukturert loggmelding per
  * utlevering (feltet `dokumentId`) som kan telles/aggregeres med Loki-spørringer, f.eks.
  * `count_over_time({app="tilbakekreving-tvangsgrunnlag"} | logfmt | dokumentId="dok-1"[24h])`.
  *
- * Telleren i minnet er kun et supplement for rask innsikt i samme instans, og nullstilles ved
- * restart. Bytt til en persistent løsning (f.eks. dedikert metrikk-backend) dersom historikk på
- * tvers av restarter/instanser blir nødvendig.
+ * Telleren eksponeres i tillegg som en Prometheus-metrikk (`tvangsgrunnlag_utlevering_total`)
+ * via MeterRegistry, i stedet for en in-memory ConcurrentHashMap - historikken overlever da
+ * en app-restart fordi Prometheus (ikke appen selv) lagrer måleseriene over tid.
+ *
+ * NB: dokumentId brukes som label, som gir én tidsserie per dokument som er utlevert. Dersom
+ * antall unike dokumenter blir stort bør dette revurderes for å unngå høy kardinalitet i
+ * Prometheus.
  */
-class UtleveringsStatistikk {
+class UtleveringsStatistikk(
+    private val registry: MeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
+) {
     private val logger = LoggerFactory.getLogger("statistikk.utlevering")
-    private val tellere = ConcurrentHashMap<String, AtomicInteger>()
 
     fun registrerUtlevering(dokumentId: String) {
-        val antall = tellere.computeIfAbsent(dokumentId) { AtomicInteger(0) }.incrementAndGet()
-        logger.info("dokumentId={} hendelse=utlevert_til_ske antallUtleveringer={}", dokumentId, antall)
+        val teller =
+            Counter
+                .builder("tvangsgrunnlag_utlevering_total")
+                .description("Antall ganger et vedtak er utlevert til Skatteetaten")
+                .tag("dokumentId", dokumentId)
+                .register(registry)
+        teller.increment()
+        logger.info("dokumentId={} hendelse=utlevert_til_ske antallUtleveringer={}", dokumentId, teller.count().toInt())
     }
 }

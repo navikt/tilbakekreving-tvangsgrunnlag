@@ -24,6 +24,8 @@ dependencies {
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.swagger)
     implementation(ktorLibs.serialization.kotlinx.json)
+    implementation(ktorLibs.server.metrics.micrometer)
+    implementation("io.micrometer:micrometer-registry-prometheus:1.17.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation(kotlin("test"))
