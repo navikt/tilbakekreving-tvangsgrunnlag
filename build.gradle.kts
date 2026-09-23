@@ -27,7 +27,6 @@ dependencies {
     implementation(ktorLibs.server.metrics.micrometer)
     implementation(ktorLibs.server.requestValidation)
     implementation(ktorLibs.server.statusPages)
-    implementation("io.konform:konform-jvm:0.11.1")
     implementation("io.micrometer:micrometer-registry-prometheus:1.17.1")
     implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:2.18.1-alpha")
     implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.62.0")

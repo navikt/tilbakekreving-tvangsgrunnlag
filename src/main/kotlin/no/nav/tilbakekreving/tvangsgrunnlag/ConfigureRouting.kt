@@ -1,6 +1,5 @@
 package no.nav.tilbakekreving.tvangsgrunnlag
 
-import io.konform.validation.Invalid
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -34,7 +33,7 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.tvangsgrunnlagRequestValidation
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.validerTvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
 
@@ -63,12 +62,8 @@ fun Application.configureRouting(
     }
     install(RequestValidation) {
         validate<TvangsgrunnlagRequest> { request ->
-            val resultat = tvangsgrunnlagRequestValidation(request)
-            if (resultat is Invalid) {
-                ValidationResult.Invalid(resultat.errors.map { it.message })
-            } else {
-                ValidationResult.Valid
-            }
+            val feil = validerTvangsgrunnlagRequest(request)
+            if (feil.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(feil)
         }
     }
     install(StatusPages) {

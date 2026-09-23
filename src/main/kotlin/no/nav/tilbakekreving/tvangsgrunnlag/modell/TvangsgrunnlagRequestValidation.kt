@@ -1,25 +1,12 @@
 package no.nav.tilbakekreving.tvangsgrunnlag.modell
 
-import io.konform.validation.Validation
-
 /**
- * Validerer TvangsgrunnlagRequest deklarativt med Konform, koblet inn i Ktor via
- * `RequestValidation`-pluginen i ConfigureRouting.kt. Feil her gir 400 Ugyldig forespørsel.
- *
- * skatteetatensKravidentifikator valideres kun som ikke-blank streng. Referansespec-en
- * (https://navikt.github.io/tilbakekreving-api/) oppgir `format: uuid`, men dette er ikke
- * bekreftet mot faktisk format i kildesystemene - legg til UUID-validering igjen dersom/når det
- * er avklart at feltet faktisk alltid er en UUID.
+ * Validerer TvangsgrunnlagRequest, koblet inn i Ktor via `RequestValidation`-pluginen i
+ * ConfigureRouting.kt. Returnerer en liste med feilmeldinger (tom liste betyr gyldig).
  */
-val tvangsgrunnlagRequestValidation =
-    Validation<TvangsgrunnlagRequest> {
-        TvangsgrunnlagRequest::skyldner {
-            constrain("må ikke være blank") { it.isNotBlank() }
-        }
-        TvangsgrunnlagRequest::oppdragsgiversKravidentifikator {
-            constrain("må ikke være blank") { it.isNotBlank() }
-        }
-        TvangsgrunnlagRequest::skatteetatensKravidentifikator {
-            constrain("må ikke være blank") { it.isNotBlank() }
-        }
+fun validerTvangsgrunnlagRequest(request: TvangsgrunnlagRequest): List<String> =
+    buildList {
+        if (request.skyldner.isBlank()) add("skyldner må ikke være blank")
+        if (request.oppdragsgiversKravidentifikator.isBlank()) add("oppdragsgiversKravidentifikator må ikke være blank")
+        if (request.skatteetatensKravidentifikator.isBlank()) add("skatteetatensKravidentifikator må ikke være blank")
     }
