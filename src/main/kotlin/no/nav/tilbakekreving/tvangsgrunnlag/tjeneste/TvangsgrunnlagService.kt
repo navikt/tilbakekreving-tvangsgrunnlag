@@ -52,7 +52,7 @@ class TvangsgrunnlagService(
 
         // TODO: Audit-logg henvendelsen og de utleverte dokumentene iht. Navs krav til
         // sporingslogg (auditlogger/CEF-format). Loggen bør inneholde hvem som spurte
-        // (Klientid/Korrelasjonsid), hvilket krav/skyldner det gjaldt og hvilke dokumenter som
+        // (traceparent), hvilket krav/skyldner det gjaldt og hvilke dokumenter som
         // ble utlevert. Avklar med sikkerhet/arkitektur hvilken audit-logg-kanal som skal brukes.
 
         dokumenterEtterDato.forEach { statistikk.registrerUtlevering("${it.journalpostId}-${it.dokumentInfoId}") }

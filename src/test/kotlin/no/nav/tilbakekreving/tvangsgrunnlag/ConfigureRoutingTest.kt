@@ -1,6 +1,5 @@
 package no.nav.tilbakekreving.tvangsgrunnlag
 
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
@@ -55,8 +54,6 @@ class ConfigureRoutingTest {
 
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-                    header("Korrelasjonsid", "11111111-1111-1111-1111-111111111111")
-                    header("Klientid", "skatteetaten-klient")
                     contentType(ContentType.Application.Json)
                     setBody(kravRequestJson())
                 }
@@ -72,7 +69,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 400 for manglende header`() =
+    fun `POST tvangsgrunnlag returner 400 for tom skyldner`() =
         testApplication {
             application {
                 configureRouting(tvangsgrunnlagService = testService())
@@ -81,7 +78,7 @@ class ConfigureRoutingTest {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
                     contentType(ContentType.Application.Json)
-                    setBody(kravRequestJson())
+                    setBody(kravRequestJson(skyldner = ""))
                 }
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -96,8 +93,6 @@ class ConfigureRoutingTest {
 
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-                    header("Korrelasjonsid", "11111111-1111-1111-1111-111111111111")
-                    header("Klientid", "skatteetaten-klient")
                     contentType(ContentType.Application.Json)
                     setBody(
                         kravRequestJson(

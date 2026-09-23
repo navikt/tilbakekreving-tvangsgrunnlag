@@ -10,18 +10,16 @@ paths:
       description: "Returnerer en liste av vedtaksdokumenter på PDF-format som tilsvarer angitt kravinformasjon"
       operationId: hentTvangsgrunnlag
       parameters:
-        - name: Korrelasjonsid
+        - name: traceparent
           in: header
-          required: true
-          description: "Identifikator for sporing av kall. Må være en gyldig UUID, og skal være unik ved hvert kall til tjenesten."
+          required: false
+          description: >-
+            W3C Trace Context-header for distribuert sporing, jf. https://www.w3.org/TR/trace-context/.
+            Håndteres automatisk av OpenTelemetry-instrumenteringen i tjenesten - er den fraværende
+            eller ugyldig startes bare en ny trace, kallet avvises ikke.
           schema:
             type: string
-        - name: Klientid
-          in: header
-          required: true
-          description: "Identifiserer kallende system hos Skatteetaten."
-          schema:
-            type: string
+            example: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
       requestBody:
         required: true
         content:

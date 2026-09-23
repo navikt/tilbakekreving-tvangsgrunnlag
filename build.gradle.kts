@@ -26,6 +26,8 @@ dependencies {
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.server.metrics.micrometer)
     implementation("io.micrometer:micrometer-registry-prometheus:1.17.1")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:2.18.1-alpha")
+    implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.62.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation(kotlin("test"))

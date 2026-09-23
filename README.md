@@ -10,7 +10,10 @@ Tar imot en `TvangsgrunnlagRequest` (skyldner, oppdragsgiversKravidentifikator,
 skatteetatensKravidentifikator, valgfri fraOgMedDato) og returnerer en zip-fil med
 tilbakekrevingsvedtak/endringsvedtak som PDF.
 
-Krever headerne `Korrelasjonsid` og `Klientid`.
+Sporing skjer via `traceparent` (W3C Trace Context), håndtert automatisk av
+OpenTelemetry-instrumentering (`KtorServerTelemetry`) - headeren er valgfri.
+Uten en OTel-collector konfigurert (`OTEL_EXPORTER_OTLP_ENDPOINT`) eksporteres
+ingen spans, men tjenesten fungerer likevel som normalt.
 
 | Status | Betydning |
 | --- | --- |

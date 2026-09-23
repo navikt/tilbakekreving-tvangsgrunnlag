@@ -11,7 +11,6 @@ import io.ktor.server.http.content.staticResources
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.swagger.swaggerUI
-import io.ktor.server.request.header
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -22,6 +21,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
 import kotlinx.serialization.Serializable
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
@@ -39,6 +40,7 @@ data class Melding(
 
 fun Application.configureRouting(
     prometheusRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
+    openTelemetry: OpenTelemetry = konfigurerOpenTelemetry(),
     tvangsgrunnlagService: TvangsgrunnlagService =
         TvangsgrunnlagService(
             MidlertidigTilbakelosningClient(),
@@ -54,6 +56,12 @@ fun Application.configureRouting(
     install(MicrometerMetrics) {
         registry = prometheusRegistry
     }
+    // Trekker automatisk ut sporingskontekst fra `traceparent`-headeren (W3C Trace Context) på
+    // innkommende kall, og starter/kobler på spans deretter. Mangler headeren, starter en ny
+    // trace - kallet avvises ikke, siden det ikke er en del av request-kontrakten.
+    install(KtorServerTelemetry) {
+        setOpenTelemetry(openTelemetry)
+    }
 
     routing {
         staticResources("static", "static")
@@ -68,13 +76,6 @@ fun Application.configureRouting(
             // TODO: Kall er foreløpig ikke sikret med Maskinporten/JWT-validering. Dette må på
             // plass før tjenesten kan eksponeres for Skatteetaten, jf. maskinporten-oppsettet i
             // .deploy/nais/app-dev.yaml.
-            val korrelasjonsid = call.request.header("Korrelasjonsid")
-            val klientid = call.request.header("Klientid")
-            if (korrelasjonsid.isNullOrBlank() || klientid.isNullOrBlank()) {
-                call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel"))
-                return@post
-            }
-
             val request = call.receive<TvangsgrunnlagRequest>()
 
             try {
