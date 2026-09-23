@@ -1,5 +1,6 @@
 package no.nav.tilbakekreving.tvangsgrunnlag
 
+import io.konform.validation.Invalid
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -10,6 +11,10 @@ import io.ktor.server.application.install
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.requestvalidation.RequestValidation
+import io.ktor.server.plugins.requestvalidation.RequestValidationException
+import io.ktor.server.plugins.requestvalidation.ValidationResult
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
@@ -29,7 +34,7 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.UgyldigForespørselException
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.tvangsgrunnlagRequestValidation
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
 
@@ -56,6 +61,21 @@ fun Application.configureRouting(
     install(MicrometerMetrics) {
         registry = prometheusRegistry
     }
+    install(RequestValidation) {
+        validate<TvangsgrunnlagRequest> { request ->
+            val resultat = tvangsgrunnlagRequestValidation(request)
+            if (resultat is Invalid) {
+                ValidationResult.Invalid(resultat.errors.map { it.message })
+            } else {
+                ValidationResult.Valid
+            }
+        }
+    }
+    install(StatusPages) {
+        exception<RequestValidationException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel: ${cause.reasons.joinToString(", ")}"))
+        }
+    }
     // Trekker automatisk ut sporingskontekst fra `traceparent`-headeren (W3C Trace Context) på
     // innkommende kall, og starter/kobler på spans deretter. Mangler headeren, starter en ny
     // trace - kallet avvises ikke, siden det ikke er en del av request-kontrakten.
@@ -78,22 +98,18 @@ fun Application.configureRouting(
             // .deploy/nais/app-dev.yaml.
             val request = call.receive<TvangsgrunnlagRequest>()
 
-            try {
-                val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
-                if (zip == null) {
-                    call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
-                    return@post
-                }
-                call.response.header(
-                    HttpHeaders.ContentDisposition,
-                    ContentDisposition.Attachment
-                        .withParameter(ContentDisposition.Parameters.FileName, "tvangsgrunnlag.zip")
-                        .toString(),
-                )
-                call.respondBytes(zip, ContentType.Application.Zip)
-            } catch (e: UgyldigForespørselException) {
-                call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel"))
+            val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
+            if (zip == null) {
+                call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
+                return@post
             }
+            call.response.header(
+                HttpHeaders.ContentDisposition,
+                ContentDisposition.Attachment
+                    .withParameter(ContentDisposition.Parameters.FileName, "tvangsgrunnlag.zip")
+                    .toString(),
+            )
+            call.respondBytes(zip, ContentType.Application.Zip)
         }
     }
 }

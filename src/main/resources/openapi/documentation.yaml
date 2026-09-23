@@ -73,8 +73,7 @@ components:
           example: "NAV-KRAV-2024-001"
         skatteetatensKravidentifikator:
           type: string
-          format: uuid
-          description: "Skatteetatens kravidentifikator (UUID)"
+          description: "Skatteetatens kravidentifikator"
           example: "550e8400-e29b-41d4-a716-446655440000"
         fraOgMedDato:
           type: string

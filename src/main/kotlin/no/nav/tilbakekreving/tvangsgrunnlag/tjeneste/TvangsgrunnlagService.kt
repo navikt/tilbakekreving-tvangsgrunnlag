@@ -6,10 +6,8 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.SkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.DokumentReferanse
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.UgyldigForespørselException
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
-import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -28,7 +26,6 @@ class TvangsgrunnlagService(
 
     /** Returnerer null dersom tvangsgrunnlaget ikke finnes (eller ikke har dokumenter etter fraOgMedDato). */
     fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
-        validerRequest(request)
         val fraOgMedDato = request.fraOgMedDato
 
         val alleDokumenter =
@@ -58,20 +55,6 @@ class TvangsgrunnlagService(
         dokumenterEtterDato.forEach { statistikk.registrerUtlevering("${it.journalpostId}-${it.dokumentInfoId}") }
 
         return zip
-    }
-
-    private fun validerRequest(request: TvangsgrunnlagRequest) {
-        if (request.skyldner.isBlank() ||
-            request.oppdragsgiversKravidentifikator.isBlank() ||
-            request.skatteetatensKravidentifikator.isBlank()
-        ) {
-            throw UgyldigForespørselException(
-                "skyldner, oppdragsgiversKravidentifikator og skatteetatensKravidentifikator er påkrevd",
-            )
-        }
-
-        runCatching { UUID.fromString(request.skatteetatensKravidentifikator) }
-            .getOrElse { throw UgyldigForespørselException("skatteetatensKravidentifikator må være en gyldig UUID") }
     }
 
     private fun zipDokumenter(dokumenter: List<DokumentReferanse>): ByteArray {
