@@ -19,11 +19,15 @@ spec:
           consumers:
             - name: Skatteetaten
               orgno: "974761076"
-          delegationSource: altinn
+            - name: NAV
+              orgno: "889640782"
           enabled: true
-          name: scope.read
-          product: arbeid
+          name: tvangsgrunnlag.read
+          product: tilbakekreving
           separator: '/'
           visibility: private
+      consumes:
+        - name: "nav:tilbakekreving/tvangsgrunnlag.read"
   ingresses:
     - https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no
+    - https://tilbakekreving-tvangsgrunnlag.ekstern.dev.nav.no/api/tilbakekreving/tvangsgrunnlag/v1

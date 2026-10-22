@@ -1,10 +1,101 @@
 {
   "info": {
     "name": "tilbakekreving-tvangsgrunnlag",
-    "description": "Test av POST /api/tilbakekreving/tvangsgrunnlag/v1 lokalt",
+    "description": "Proof of concept med Texas i dev. Nav må være konsument av nav:tilbakekreving/tvangsgrunnlag.read, og dev-appen må ha scopet under consumes. Finn dev-poden: kubectl --context dev-gcp -n tilbake get pods -l app=tilbakekreving-tvangsgrunnlag. Finn NAIS_TOKEN_ENDPOINT i podens applikasjonscontainer. Start kubectl --context dev-gcp -n tilbake port-forward --address 127.0.0.1 pod/<podnavn> 7160:<porten fra NAIS_TOKEN_ENDPOINT>. Sett texasTokenUrl til http://127.0.0.1:7160 etterfulgt av stien fra NAIS_TOKEN_ENDPOINT. Kjør først Hent Maskinporten-token via Texas, deretter Hent tvangsgrunnlag. Tokenet lagres i collection-variabelen maskinportenToken. Ikke del, synkroniser eller eksporter collection med tokenverdien. Fjern verdien etter testing, og stopp port-forward med Ctrl+C. Tokenet representerer Nav, ikke Skatteetaten. baseUrl er http://localhost:8080 for lokal testing. For dev: https://tilbakekreving-tvangsgrunnlag.ekstern.dev.nav.no. Lokal oppstart: MASKINPORTEN_WELL_KNOWN_URL=https://test.maskinporten.no/.well-known/oauth-authorization-server ./gradlew run. Lokal testing returnerer testdokumenter fra midlertidige klienter, ikke ekte tvangsgrunnlag.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{maskinportenToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "maskinportenToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "texasTokenUrl",
+      "value": "http://127.0.0.1:7160/api/v1/token",
+      "type": "string"
+    }
+  ],
   "item": [
+    {
+      "name": "Hent Maskinporten-token via Texas (dev port-forward)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('maskinportenToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Texas returnerer HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    const body = pm.response.json();",
+              "    pm.test('Texas returnerer et Bearer-token', function () {",
+              "        pm.expect(body.token_type.toLowerCase()).to.eql('bearer');",
+              "        pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+              "        pm.expect(body.expires_in).to.be.a('number').and.above(0);",
+              "    });",
+              "    if (typeof body.access_token === 'string' && body.access_token.length > 0 &&",
+              "        typeof body.token_type === 'string' && body.token_type.toLowerCase() === 'bearer' &&",
+              "        typeof body.expires_in === 'number' && body.expires_in > 0) {",
+              "        pm.collectionVariables.set('maskinportenToken', body.access_token);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"identity_provider\": \"maskinporten\",\n    \"target\": \"nav:tilbakekreving/tvangsgrunnlag.read\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{texasTokenUrl}}",
+          "host": ["{{texasTokenUrl}}"]
+        }
+      },
+      "response": []
+    },
     {
       "name": "Hent tvangsgrunnlag (kjent krav)",
       "request": {
@@ -29,10 +120,8 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/tilbakekreving/tvangsgrunnlag/v1",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8080",
+          "raw": "{{baseUrl}}/api/tilbakekreving/tvangsgrunnlag/v1",
+          "host": ["{{baseUrl}}"],
           "path": ["api", "tilbakekreving", "tvangsgrunnlag", "v1"]
         }
       },
