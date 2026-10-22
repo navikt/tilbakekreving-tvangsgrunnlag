@@ -57,7 +57,7 @@ henvendelse/utlevert dokument. Merket med `TODO` i koden.
 
 Swagger UI lokalt: http://localhost:8080/swagger
 
-Swagger UI i preprod: https://tilbakekreving-tvangsgrunnlag.dev.intern.nav.no/swagger
+Swagger UI i dev-gcp: https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no/swagger
 
 ## Teste med Postman
 
