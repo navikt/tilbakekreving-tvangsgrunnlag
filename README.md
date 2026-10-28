@@ -45,15 +45,26 @@ tjeneste/  TvangsgrunnlagService og statistikk
 `klient`-implementasjonene (`Midlertidig*Client`) er placeholders uten ekte
 integrasjon. Se `TODO`-kommentarer i hver fil for hva som gjenstår.
 
-**Ikke implementert ennå:** Maskinporten/JWT-validering og audit-logging av
-henvendelse/utlevert dokument. Merket med `TODO` i koden.
+POST-endepunktet krever et Maskinporten-token med scopet
+`nav:tilbakekreving/tvangsgrunnlag.read`. Appen validerer tokenet mot issueren i
+`MASKINPORTEN_WELL_KNOWN_URL`.
+
+**Ikke implementert ennå:** audit-logging av henvendelse/utlevert dokument.
+Merket med `TODO` i koden.
 
 ## Kjøre og teste
 
 ```bash
+MASKINPORTEN_WELL_KNOWN_URL=https://test.maskinporten.no/.well-known/oauth-authorization-server 
 ./gradlew run    # Starter appen på port 8080
 ./gradlew test   # Kjører tester
 ```
+
+I IntelliJ kan du i stedet sette `MASKINPORTEN_WELL_KNOWN_URL` under
+**Run > Edit Configurations > Environment variables**. Nais setter variabelen
+selv i dev.
+
+Lokalt returnerer appen testdokumenter fra `Midlertidig*Client`, ikke ekte tvangsgrunnlag.
 
 Swagger UI lokalt: http://localhost:8080/swagger
 
@@ -64,15 +75,33 @@ Swagger UI i dev-gcp: https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no/sw
 En ferdig Postman-request ligger i [`tvangsgrunnlag.postman_collection.json`](tvangsgrunnlag.postman_collection.json),
 med korrekte headere og et kjent testkrav.
 
-1. Start appen lokalt: `./gradlew run`
+1. Start appen lokalt (se over), eller sett `baseUrl` til
+   `https://tilbakekreving-tvangsgrunnlag.ekstern.dev.nav.no` for dev
 2. Åpne Postman, klikk **Import** øverst til venstre
 3. Velg **File** og pek på `tvangsgrunnlag.postman_collection.json` i repoet
-4. Klikk **Import** — collection'en `tilbakekreving-tvangsgrunnlag` dukker opp i sidepanelet
-5. Åpne requesten "Hent tvangsgrunnlag (kjent krav)"
-6. Trykk på pilen ved siden av **Send**-knappen og velg **Send and Download**
-7. Velg hvor zip-fila skal lagres
+4. Klikk **Import**: collectionen `tilbakekreving-tvangsgrunnlag` dukker opp i sidepanelet
+5. Hent et token (se under)
+6. Åpne requesten "Hent tvangsgrunnlag (kjent krav)"
+7. Trykk på pilen ved siden av **Send**-knappen og velg **Send and Download**
+8. Velg hvor zip-fila skal lagres
 
 Forventet resultat: status **200 OK** og en nedlastet zip med `dok-1.pdf` og `dok-2.pdf`.
+
+### Hente Maskinporten-token via Texas
+
+```bash
+kubectl --context dev-gcp -n tilbake get pods -l app=tilbakekreving-tvangsgrunnlag
+kubectl --context dev-gcp -n tilbake port-forward --address 127.0.0.1 pod/<podnavn> 7160:<texas-port>
+```
+
+`<texas-port>` og stien står i `NAIS_TOKEN_ENDPOINT` i Nais Console. Sett
+`texasTokenUrl` i Postman til `http://127.0.0.1:7160` pluss stien. Kjør deretter
+requesten "Hent Maskinporten-token via Texas". Tokenet lagres i
+`maskinportenToken` og brukes av neste kall.
+
+Tokenet representerer Nav, ikke Skatteetaten. Ikke del eller eksporter
+collectionen med tokenverdien. Fjern verdien etter testing og stopp
+port-forward med `Ctrl+C`.
 
 ## Arkitektur
 ```mermaid
