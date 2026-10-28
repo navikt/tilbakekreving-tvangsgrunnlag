@@ -25,5 +25,11 @@ spec:
           product: arbeid
           separator: '/'
           visibility: private
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          memory: 512Mi
+          cpu: 50m
   ingresses:
     - https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no
