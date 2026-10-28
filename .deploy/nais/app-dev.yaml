@@ -27,9 +27,9 @@ spec:
           visibility: private
       resources:
         limits:
-          memory: 1024Mi
+          memory: 512Mi
         requests:
-          memory: 1024Mi
+          memory: 512Mi
           cpu: 50m
   ingresses:
     - https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no
