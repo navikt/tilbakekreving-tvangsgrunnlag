@@ -7,6 +7,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -28,6 +30,8 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
 import kotlinx.serialization.Serializable
+import no.nav.security.token.support.v3.RequiredClaims
+import no.nav.security.token.support.v3.tokenValidationSupport
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
@@ -36,6 +40,9 @@ import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.validerTvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
+
+private const val MASKINPORTEN_ISSUER = "maskinporten"
+private const val MASKINPORTEN_SCOPE = "nav:tilbakekreving/tvangsgrunnlag.read"
 
 @Serializable
 data class Melding(
@@ -77,6 +84,17 @@ fun Application.configureRouting(
     install(KtorServerTelemetry) {
         setOpenTelemetry(openTelemetry)
     }
+    install(Authentication) {
+        tokenValidationSupport(
+            name = MASKINPORTEN_ISSUER,
+            config = this@configureRouting.environment.config,
+            requiredClaims =
+                RequiredClaims(
+                    issuer = MASKINPORTEN_ISSUER,
+                    claimMap = arrayOf("scope=$MASKINPORTEN_SCOPE"),
+                ),
+        )
+    }
 
     routing {
         staticResources("static", "static")
@@ -87,24 +105,23 @@ fun Application.configureRouting(
             call.respondText(prometheusRegistry.scrape())
         }
 
-        post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-            // TODO: Kall er foreløpig ikke sikret med Maskinporten/JWT-validering. Dette må på
-            // plass før tjenesten kan eksponeres for Skatteetaten, jf. maskinporten-oppsettet i
-            // .deploy/nais/app-dev.yaml.
-            val request = call.receive<TvangsgrunnlagRequest>()
+        authenticate(MASKINPORTEN_ISSUER) {
+            post("/api/tilbakekreving/tvangsgrunnlag/v1") {
+                val request = call.receive<TvangsgrunnlagRequest>()
 
-            val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
-            if (zip == null) {
-                call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
-                return@post
+                val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
+                if (zip == null) {
+                    call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
+                    return@post
+                }
+                call.response.header(
+                    HttpHeaders.ContentDisposition,
+                    ContentDisposition.Attachment
+                        .withParameter(ContentDisposition.Parameters.FileName, "tvangsgrunnlag.zip")
+                        .toString(),
+                )
+                call.respondBytes(zip, ContentType.Application.Zip)
             }
-            call.response.header(
-                HttpHeaders.ContentDisposition,
-                ContentDisposition.Attachment
-                    .withParameter(ContentDisposition.Parameters.FileName, "tvangsgrunnlag.zip")
-                    .toString(),
-            )
-            call.respondBytes(zip, ContentType.Application.Zip)
         }
     }
 }

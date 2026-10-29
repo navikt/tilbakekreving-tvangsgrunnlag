@@ -14,9 +14,14 @@ import java.io.ByteArrayOutputStream
 //  - Erstatte den midlertidige implementasjonen med en ekte HTTP-klient
 interface SafClient {
     fun hentPdf(dokument: DokumentReferanse): ByteArray
+
+    fun hentBrukerFnr(journalpostId: String): String?
 }
 
 class MidlertidigSafClient : SafClient {
+    override fun hentBrukerFnr(journalpostId: String): String? =
+        throw UnsupportedOperationException("Oppslag av journalpostens bruker krever ekte SAF-integrasjon")
+
     override fun hentPdf(dokument: DokumentReferanse): ByteArray =
         byggEksempelPdf(
             tittel = "Tilbakekrevingsdokument",

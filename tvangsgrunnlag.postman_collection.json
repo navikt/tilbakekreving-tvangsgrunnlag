@@ -1,10 +1,102 @@
 {
   "info": {
     "name": "tilbakekreving-tvangsgrunnlag",
-    "description": "Test av POST /api/tilbakekreving/tvangsgrunnlag/v1 lokalt",
+    "description": "Tester POST /api/tilbakekreving/tvangsgrunnlag/v1 lokalt eller i dev. Kjør «Hent Maskinporten-token via Texas» først, deretter «Hent tvangsgrunnlag». Oppsett står i README.md under «Teste med Postman». Tokenet lagres i maskinportenToken: ikke del eller eksporter collectionen med tokenverdien.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{maskinportenToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "maskinportenToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "texasTokenUrl",
+      "value": "http://127.0.0.1:7160/api/v1/token",
+      "type": "string"
+    }
+  ],
   "item": [
+    {
+      "name": "Hent Maskinporten-token via Texas (dev port-forward)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('maskinportenToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Texas returnerer HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    const body = pm.response.json();",
+              "    pm.test('Texas returnerer et Bearer-token', function () {",
+              "        pm.expect(body.token_type.toLowerCase()).to.eql('bearer');",
+              "        pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+              "        pm.expect(body.expires_in).to.be.a('number').and.above(0);",
+              "    });",
+              "    if (typeof body.access_token === 'string' && body.access_token.length > 0 &&",
+              "        typeof body.token_type === 'string' && body.token_type.toLowerCase() === 'bearer' &&",
+              "        typeof body.expires_in === 'number' && body.expires_in > 0) {",
+              "        pm.collectionVariables.set('maskinportenToken', body.access_token);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"identity_provider\": \"maskinporten\",\n    \"target\": \"nav:tilbakekreving/tvangsgrunnlag.read\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{texasTokenUrl}}",
+          "host": ["{{texasTokenUrl}}"]
+        },
+        "description": "Krever autentisert Kubernetes-tilgang og rettighet til port-forward i dev-gcp. Henter et Maskinporten-token som representerer Nav, ikke Skatteetaten. Tokenets maksimale levetid er konfigurert til 30 sekunder, så kjør API-kallet rett etterpå. Bruk kun i dev, behold port-forward på 127.0.0.1, og stopp den etter testing. Ikke del eller eksporter tokenverdien."
+      },
+      "response": []
+    },
     {
       "name": "Hent tvangsgrunnlag (kjent krav)",
       "request": {
@@ -29,10 +121,8 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/api/tilbakekreving/tvangsgrunnlag/v1",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8080",
+          "raw": "{{baseUrl}}/api/tilbakekreving/tvangsgrunnlag/v1",
+          "host": ["{{baseUrl}}"],
           "path": ["api", "tilbakekreving", "tvangsgrunnlag", "v1"]
         }
       },
