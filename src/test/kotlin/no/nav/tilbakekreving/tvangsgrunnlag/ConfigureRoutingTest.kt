@@ -91,33 +91,16 @@ class ConfigureRoutingTest {
             ).serialize()
 
     @Test
-    fun `POST tvangsgrunnlag avviser forespørsel uten token`() =
+    fun `POST tvangsgrunnlag avviser manglende token, ugyldig token og token uten påkrevd scope`() =
         withAuthenticatedApplication {
-            val response = client.post("/api/tilbakekreving/tvangsgrunnlag/v1")
+            listOf(null, "not-a-token", token(scope = "nav:tilbakekreving/tvangsgrunnlag.write")).forEach { token ->
+                val response =
+                    client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
+                        token?.let { bearerAuth(it) }
+                    }
 
-            assertEquals(HttpStatusCode.Unauthorized, response.status)
-        }
-
-    @Test
-    fun `POST tvangsgrunnlag avviser ugyldig token`() =
-        withAuthenticatedApplication {
-            val response =
-                client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-                    bearerAuth("not-a-token")
-                }
-
-            assertEquals(HttpStatusCode.Unauthorized, response.status)
-        }
-
-    @Test
-    fun `POST tvangsgrunnlag avviser token uten påkrevd scope`() =
-        withAuthenticatedApplication {
-            val response =
-                client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-                    bearerAuth(token(scope = "nav:tilbakekreving/tvangsgrunnlag.write"))
-                }
-
-            assertEquals(HttpStatusCode.Unauthorized, response.status)
+                assertEquals(HttpStatusCode.Unauthorized, response.status)
+            }
         }
 
     @Test
