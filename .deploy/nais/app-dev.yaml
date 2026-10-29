@@ -28,6 +28,12 @@ spec:
           visibility: private
       consumes:
         - name: "nav:tilbakekreving/tvangsgrunnlag.read"
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      memory: 512Mi
+      cpu: 50m
   ingresses:
     - https://tilbakekreving-tvangsgrunnlag.intern.dev.nav.no
     - https://tilbakekreving-tvangsgrunnlag.ekstern.dev.nav.no/api/tilbakekreving/tvangsgrunnlag/v1
