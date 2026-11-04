@@ -18,6 +18,7 @@ kotlin {
     jvmToolchain(25)
 }
 dependencies {
+    implementation(platform("io.netty:netty-bom:4.2.20.Final"))
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.core)
     implementation(ktorLibs.server.netty)
