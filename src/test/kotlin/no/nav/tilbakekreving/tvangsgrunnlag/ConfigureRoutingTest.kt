@@ -11,10 +11,13 @@ import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.security.mock.oauth2.MockOAuth2Server
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.FamilieTilbakeClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.JournalpostReferanse
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
@@ -152,5 +155,83 @@ class ConfigureRoutingTest {
                 }
 
             assertEquals(HttpStatusCode.NotFound, response.status)
+        }
+
+    private fun withFamilieTilbake(
+        client: FamilieTilbakeClient,
+        block: suspend ApplicationTestBuilder.() -> Unit,
+    ) = testApplication {
+        environment {
+            config = tokenValidationConfig()
+        }
+        application {
+            val tilbakelosning =
+                object : TilbakelosningClient {
+                    override fun hentDokumenter(
+                        skyldner: String,
+                        oppdragsgiversKravidentifikator: String,
+                        skatteetatensKravidentifikator: String,
+                    ) = MidlertidigTilbakelosningClient().hentDokumenter(
+                        kjentSkyldner,
+                        kjentOppdragsgiversKravidentifikator,
+                        kjentSkatteetatensKravidentifikator,
+                    )
+                }
+            val service =
+                TvangsgrunnlagService(
+                    tilbakelosning,
+                    MidlertidigSkeKravClient(),
+                    MidlertidigSafClient(),
+                    MidlertidigJoarkClient(),
+                )
+            configureRouting(tvangsgrunnlagService = service, familieTilbakeClient = client)
+        }
+        block()
+    }
+
+    private suspend fun ApplicationTestBuilder.postKrav(oppdragsgiversKravidentifikator: String) =
+        client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
+            bearerAuth(token())
+            contentType(ContentType.Application.Json)
+            setBody(kravRequestJson(oppdragsgiversKravidentifikator = oppdragsgiversKravidentifikator))
+        }
+
+    @Test
+    fun `POST tvangsgrunnlag med familie-tilbake returnerer zip når journalposter finnes`() {
+        var mottattVedtakId: String? = null
+        val familieTilbake =
+            object : FamilieTilbakeClient {
+                override suspend fun hentJournalposter(vedtakId: String): List<JournalpostReferanse> {
+                    mottattVedtakId = vedtakId
+                    return listOf(JournalpostReferanse("111", "1"))
+                }
+            }
+        withFamilieTilbake(familieTilbake) {
+            val response = postKrav("OB04000123456")
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(ContentType.Application.Zip, response.contentType()?.withoutParameters())
+        }
+        assertEquals("123456", mottattVedtakId)
+    }
+
+    @Test
+    fun `POST tvangsgrunnlag med familie-tilbake returnerer 404 ved tom liste`() =
+        withFamilieTilbake(
+            object : FamilieTilbakeClient {
+                override suspend fun hentJournalposter(vedtakId: String) = emptyList<JournalpostReferanse>()
+            },
+        ) {
+            assertEquals(HttpStatusCode.NotFound, postKrav("OB04000123456").status)
+        }
+
+    @Test
+    fun `POST tvangsgrunnlag med familie-tilbake returnerer 502 ved feil og 400 ved ugyldig kravidentifikator`() =
+        withFamilieTilbake(
+            object : FamilieTilbakeClient {
+                override suspend fun hentJournalposter(vedtakId: String): List<JournalpostReferanse> = error("nede")
+            },
+        ) {
+            assertEquals(HttpStatusCode.BadGateway, postKrav("OB04000123456").status)
+            assertEquals(HttpStatusCode.BadRequest, postKrav("NAV-KRAV-2024-001").status)
         }
 }

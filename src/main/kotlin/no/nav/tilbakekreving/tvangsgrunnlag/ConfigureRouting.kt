@@ -29,19 +29,25 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import no.nav.security.token.support.v3.RequiredClaims
 import no.nav.security.token.support.v3.tokenValidationSupport
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.FamilieTilbakeClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.utledVedtakId
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.validerTvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
+import org.slf4j.LoggerFactory
 
 private const val MASKINPORTEN_ISSUER = "maskinporten"
+private val logger = LoggerFactory.getLogger("no.nav.tilbakekreving.tvangsgrunnlag.ConfigureRouting")
+
 private const val MASKINPORTEN_SCOPE = "nav:tilbakekreving/tvangsgrunnlag.read"
 
 @Serializable
@@ -60,6 +66,7 @@ fun Application.configureRouting(
             MidlertidigJoarkClient(),
             UtleveringsStatistikk(prometheusRegistry),
         ),
+    familieTilbakeClient: FamilieTilbakeClient? = null,
 ) {
     install(ContentNegotiation) {
         json()
@@ -108,6 +115,29 @@ fun Application.configureRouting(
         authenticate(MASKINPORTEN_ISSUER) {
             post("/api/tilbakekreving/tvangsgrunnlag/v1") {
                 val request = call.receive<TvangsgrunnlagRequest>()
+
+                if (familieTilbakeClient != null) {
+                    val vedtakId = utledVedtakId(request.oppdragsgiversKravidentifikator)
+                    if (vedtakId == null) {
+                        call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig oppdragsgiversKravidentifikator"))
+                        return@post
+                    }
+                    val journalposter =
+                        try {
+                            familieTilbakeClient.hentJournalposter(vedtakId)
+                        } catch (exception: CancellationException) {
+                            throw exception
+                        } catch (exception: Exception) {
+                            logger.error("Kunne ikke hente journalposter fra familie-tilbake for vedtakId=$vedtakId", exception)
+                            call.respond(HttpStatusCode.BadGateway, Melding("Kunne ikke hente vedtaksdokumenter fra familie-tilbake"))
+                            return@post
+                        }
+                    if (journalposter.isEmpty()) {
+                        call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
+                        return@post
+                    }
+                    logger.info("Hentet journalposter fra familie-tilbake for vedtakId=$vedtakId: $journalposter")
+                }
 
                 val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
                 if (zip == null) {

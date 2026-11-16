@@ -8,6 +8,19 @@ metadata:
 
 spec:
   image: {{image}}
+  azure:
+    application:
+      enabled: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: familie-tilbake
+          namespace: teamfamilie
+  env:
+    - name: FAMILIE_TILBAKE_URL
+      value: "http://familie-tilbake.teamfamilie"
+    - name: FAMILIE_TILBAKE_SCOPE
+      value: "api://dev-gcp.teamfamilie.familie-tilbake/.default"
   maskinporten:
     enabled: true
     scopes:
