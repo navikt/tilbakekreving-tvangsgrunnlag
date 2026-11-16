@@ -122,21 +122,21 @@ fun Application.configureRouting(
                         call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig oppdragsgiversKravidentifikator"))
                         return@post
                     }
-                    val journalposter =
+                    val vedtaksdokumenter =
                         try {
-                            familieTilbakeClient.hentJournalposter(vedtakId)
+                            familieTilbakeClient.hentVedtaksdokumenter(vedtakId)
                         } catch (exception: CancellationException) {
                             throw exception
                         } catch (exception: Exception) {
-                            logger.error("Kunne ikke hente journalposter fra familie-tilbake for vedtakId=$vedtakId", exception)
+                            logger.error("Kunne ikke hente vedtaksdokumenter fra familie-tilbake for vedtakId=$vedtakId", exception)
                             call.respond(HttpStatusCode.BadGateway, Melding("Kunne ikke hente vedtaksdokumenter fra familie-tilbake"))
                             return@post
                         }
-                    if (journalposter.isEmpty()) {
+                    if (vedtaksdokumenter.isEmpty()) {
                         call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
                         return@post
                     }
-                    logger.info("Hentet journalposter fra familie-tilbake for vedtakId=$vedtakId: $journalposter")
+                    logger.info("Hentet vedtaksdokumenter fra familie-tilbake for vedtakId=$vedtakId: $vedtaksdokumenter")
                 }
 
                 val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)

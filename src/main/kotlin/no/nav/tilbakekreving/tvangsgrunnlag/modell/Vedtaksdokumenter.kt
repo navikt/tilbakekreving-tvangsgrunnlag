@@ -2,9 +2,9 @@ package no.nav.tilbakekreving.tvangsgrunnlag.modell
 
 import kotlinx.serialization.Serializable
 
-/** Referanse til et journalført vedtaksdokument, slik familie-tilbake returnerer det. */
+/** Referanse til et vedtaksdokument i en journalpost, slik familie-tilbake returnerer det. */
 @Serializable
-data class JournalpostReferanse(
+data class VedtaksdokumentReferanse(
     val journalpostId: String,
     val dokumentInfoId: String,
 )

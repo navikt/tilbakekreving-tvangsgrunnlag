@@ -17,7 +17,7 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.JournalpostReferanse
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
@@ -94,7 +94,7 @@ class ConfigureRoutingTest {
             ).serialize()
 
     @Test
-    fun `POST tvangsgrunnlag avviser manglende token, ugyldig token og token uten påkrevd scope`() =
+    fun `POST tvangsgrunnlag med manglende token, ugyldig token og token uten påkrevd scope`() =
         withAuthenticatedApplication {
             listOf(null, "not-a-token", token(scope = "nav:tilbakekreving/tvangsgrunnlag.write")).forEach { token ->
                 val response =
@@ -107,7 +107,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 200 og zip for kjent krav`() =
+    fun `POST tvangsgrunnlag for kjent krav`() =
         withAuthenticatedApplication {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
@@ -127,7 +127,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 400 for tom skyldner`() =
+    fun `POST tvangsgrunnlag med tom skyldner`() =
         withAuthenticatedApplication {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
@@ -140,7 +140,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 404 for ukjent krav`() =
+    fun `POST tvangsgrunnlag for ukjent krav`() =
         withAuthenticatedApplication {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
@@ -197,13 +197,13 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag med familie-tilbake returnerer zip når journalposter finnes`() {
+    fun `POST tvangsgrunnlag med familie-tilbake når vedtaksdokumenter finnes`() {
         var mottattVedtakId: String? = null
         val familieTilbake =
             object : FamilieTilbakeClient {
-                override suspend fun hentJournalposter(vedtakId: String): List<JournalpostReferanse> {
+                override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> {
                     mottattVedtakId = vedtakId
-                    return listOf(JournalpostReferanse("111", "1"))
+                    return listOf(VedtaksdokumentReferanse("111", "1"))
                 }
             }
         withFamilieTilbake(familieTilbake) {
@@ -215,20 +215,20 @@ class ConfigureRoutingTest {
     }
 
     @Test
-    fun `POST tvangsgrunnlag med familie-tilbake returnerer 404 ved tom liste`() =
+    fun `POST tvangsgrunnlag med familie-tilbake når listen er tom`() =
         withFamilieTilbake(
             object : FamilieTilbakeClient {
-                override suspend fun hentJournalposter(vedtakId: String) = emptyList<JournalpostReferanse>()
+                override suspend fun hentVedtaksdokumenter(vedtakId: String) = emptyList<VedtaksdokumentReferanse>()
             },
         ) {
             assertEquals(HttpStatusCode.NotFound, postKrav("OB04000123456").status)
         }
 
     @Test
-    fun `POST tvangsgrunnlag med familie-tilbake returnerer 502 ved feil og 400 ved ugyldig kravidentifikator`() =
+    fun `POST tvangsgrunnlag med familie-tilbake ved feil og ugyldig kravidentifikator`() =
         withFamilieTilbake(
             object : FamilieTilbakeClient {
-                override suspend fun hentJournalposter(vedtakId: String): List<JournalpostReferanse> = error("nede")
+                override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
             },
         ) {
             assertEquals(HttpStatusCode.BadGateway, postKrav("OB04000123456").status)

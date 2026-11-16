@@ -7,10 +7,10 @@ import io.ktor.client.request.accept
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.http.ContentType
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.JournalpostReferanse
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
 
 interface FamilieTilbakeClient {
-    suspend fun hentJournalposter(vedtakId: String): List<JournalpostReferanse>
+    suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse>
 }
 
 class HttpFamilieTilbakeClient(
@@ -18,7 +18,7 @@ class HttpFamilieTilbakeClient(
     private val baseUrl: String,
     private val hentAccessToken: suspend () -> String,
 ) : FamilieTilbakeClient {
-    override suspend fun hentJournalposter(vedtakId: String): List<JournalpostReferanse> =
+    override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> =
         httpClient
             .get("${baseUrl.trimEnd('/')}/api/v1/dokumenter/vedtak/$vedtakId") {
                 expectSuccess = true
