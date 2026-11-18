@@ -7,9 +7,17 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.HttpTilbakekrevingBackendClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TexasClient
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
 
 fun Application.module() {
     val config = environment.config
@@ -31,7 +39,17 @@ fun Application.module() {
     monitor.subscribe(ApplicationStopped) { httpClient.close() }
 
     val texasClient = TexasClient(httpClient, tokenEndpoint)
+    val prometheusRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     configureRouting(
-        tilbakekrevingBackendClient = HttpTilbakekrevingBackendClient(httpClient, baseUrl) { texasClient.hentMaskintoken(scope) },
+        prometheusRegistry = prometheusRegistry,
+        tvangsgrunnlagService =
+            TvangsgrunnlagService(
+                HttpTilbakekrevingBackendClient(httpClient, baseUrl) { texasClient.hentMaskintoken(scope) },
+                MidlertidigTilbakelosningClient(),
+                MidlertidigSkeKravClient(),
+                MidlertidigSafClient(),
+                MidlertidigJoarkClient(),
+                UtleveringsStatistikk(prometheusRegistry),
+            ),
     )
 }

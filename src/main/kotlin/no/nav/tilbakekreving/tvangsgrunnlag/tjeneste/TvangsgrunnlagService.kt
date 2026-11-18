@@ -3,6 +3,7 @@ package no.nav.tilbakekreving.tvangsgrunnlag.tjeneste
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.JoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.SafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.SkeKravClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.DokumentReferanse
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
@@ -15,7 +16,13 @@ import java.util.zip.ZipOutputStream
  * Orkestrerer hele hent-tvangsgrunnlag-flyten, jf. beskrivelsen i
  * https://navikt.github.io/tilbakekreving-api/openapi.yaml
  */
+class TilbakekrevingBackendException(
+    val vedtakId: String,
+    cause: Throwable,
+) : RuntimeException("Kunne ikke hente vedtaksdokumenter for vedtakId=$vedtakId", cause)
+
 class TvangsgrunnlagService(
+    private val tilbakekrevingBackendClient: TilbakekrevingBackendClient,
     private val tilbakelosningClient: TilbakelosningClient,
     private val skeKravClient: SkeKravClient,
     private val safClient: SafClient,
@@ -25,8 +32,22 @@ class TvangsgrunnlagService(
     private val logger = LoggerFactory.getLogger(TvangsgrunnlagService::class.java)
 
     /** Returnerer null dersom tvangsgrunnlaget ikke finnes (eller ikke har dokumenter etter fraOgMedDato). */
-    fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
+    suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
         val fraOgMedDato = request.fraOgMedDato
+
+        val vedtakId =
+            request.oppdragsgiversKravidentifikator
+                .removePrefix("OB04")
+                .toLong()
+                .toString()
+        val vedtaksdokumenter =
+            try {
+                tilbakekrevingBackendClient.hentVedtaksdokumenter(vedtakId)
+            } catch (exception: Exception) {
+                throw TilbakekrevingBackendException(vedtakId, exception)
+            }
+        if (vedtaksdokumenter.isEmpty()) return null
+        logger.info("Hentet vedtaksdokumenter fra tilbakekreving-backend for vedtakId=$vedtakId: $vedtaksdokumenter")
 
         val alleDokumenter =
             tilbakelosningClient.hentDokumenter(

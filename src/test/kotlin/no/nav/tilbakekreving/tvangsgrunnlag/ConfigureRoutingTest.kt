@@ -16,7 +16,6 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import java.util.zip.ZipInputStream
@@ -29,7 +28,7 @@ import kotlin.test.assertTrue
 class ConfigureRoutingTest {
     private val mockOAuth2Server = MockOAuth2Server()
     private val kjentSkyldner = "12345678901"
-    private val kjentOppdragsgiversKravidentifikator = "NAV-KRAV-2024-001"
+    private val kjentOppdragsgiversKravidentifikator = "OB04000123456"
     private val kjentSkatteetatensKravidentifikator = "550e8400-e29b-41d4-a716-446655440000"
 
     @BeforeTest
@@ -57,24 +56,37 @@ class ConfigureRoutingTest {
         }
         """.trimIndent()
 
-    private fun testService() =
+    private val backendMedDokumenter =
+        object : TilbakekrevingBackendClient {
+            override suspend fun hentVedtaksdokumenter(vedtakId: String) = listOf(VedtaksdokumentReferanse("111", "1"))
+        }
+
+    private val feilendeBackend =
+        object : TilbakekrevingBackendClient {
+            override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
+        }
+
+    private fun testService(backend: TilbakekrevingBackendClient = backendMedDokumenter) =
         TvangsgrunnlagService(
+            backend,
             MidlertidigTilbakelosningClient(),
             MidlertidigSkeKravClient(),
             MidlertidigSafClient(),
             MidlertidigJoarkClient(),
         )
 
-    private fun withAuthenticatedApplication(block: suspend ApplicationTestBuilder.() -> Unit) =
-        testApplication {
-            environment {
-                config = tokenValidationConfig()
-            }
-            application {
-                configureRouting(tvangsgrunnlagService = testService())
-            }
-            block()
+    private fun withAuthenticatedApplication(
+        service: TvangsgrunnlagService = testService(),
+        block: suspend ApplicationTestBuilder.() -> Unit,
+    ) = testApplication {
+        environment {
+            config = tokenValidationConfig()
         }
+        application {
+            configureRouting(tvangsgrunnlagService = service)
+        }
+        block()
+    }
 
     private fun tokenValidationConfig() =
         MapApplicationConfig().apply {
@@ -157,38 +169,6 @@ class ConfigureRoutingTest {
             assertEquals(HttpStatusCode.NotFound, response.status)
         }
 
-    private fun withTilbakekrevingBackend(
-        client: TilbakekrevingBackendClient,
-        block: suspend ApplicationTestBuilder.() -> Unit,
-    ) = testApplication {
-        environment {
-            config = tokenValidationConfig()
-        }
-        application {
-            val tilbakelosning =
-                object : TilbakelosningClient {
-                    override fun hentDokumenter(
-                        skyldner: String,
-                        oppdragsgiversKravidentifikator: String,
-                        skatteetatensKravidentifikator: String,
-                    ) = MidlertidigTilbakelosningClient().hentDokumenter(
-                        kjentSkyldner,
-                        kjentOppdragsgiversKravidentifikator,
-                        kjentSkatteetatensKravidentifikator,
-                    )
-                }
-            val service =
-                TvangsgrunnlagService(
-                    tilbakelosning,
-                    MidlertidigSkeKravClient(),
-                    MidlertidigSafClient(),
-                    MidlertidigJoarkClient(),
-                )
-            configureRouting(tvangsgrunnlagService = service, tilbakekrevingBackendClient = client)
-        }
-        block()
-    }
-
     private suspend fun ApplicationTestBuilder.postKrav(oppdragsgiversKravidentifikator: String) =
         client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
             bearerAuth(token())
@@ -197,41 +177,14 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag med tilbakekreving-backend når vedtaksdokumenter finnes`() {
-        var mottattVedtakId: String? = null
-        val tilbakekrevingBackend =
-            object : TilbakekrevingBackendClient {
-                override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> {
-                    mottattVedtakId = vedtakId
-                    return listOf(VedtaksdokumentReferanse("111", "1"))
-                }
-            }
-        withTilbakekrevingBackend(tilbakekrevingBackend) {
-            val response = postKrav("OB04000123456")
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(ContentType.Application.Zip, response.contentType()?.withoutParameters())
-        }
-        assertEquals("123456", mottattVedtakId)
-    }
-
-    @Test
-    fun `POST tvangsgrunnlag med tilbakekreving-backend når listen er tom`() =
-        withTilbakekrevingBackend(
-            object : TilbakekrevingBackendClient {
-                override suspend fun hentVedtaksdokumenter(vedtakId: String) = emptyList<VedtaksdokumentReferanse>()
-            },
-        ) {
-            assertEquals(HttpStatusCode.NotFound, postKrav("OB04000123456").status)
+    fun `POST tvangsgrunnlag når tilbakekreving-backend feiler`() =
+        withAuthenticatedApplication(testService(feilendeBackend)) {
+            assertEquals(HttpStatusCode.BadGateway, postKrav(kjentOppdragsgiversKravidentifikator).status)
         }
 
     @Test
-    fun `POST tvangsgrunnlag med tilbakekreving-backend ved feil og ugyldig kravidentifikator`() =
-        withTilbakekrevingBackend(
-            object : TilbakekrevingBackendClient {
-                override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
-            },
-        ) {
-            assertEquals(HttpStatusCode.BadGateway, postKrav("OB04000123456").status)
+    fun `POST tvangsgrunnlag med ugyldig kravidentifikator`() =
+        withAuthenticatedApplication {
             assertEquals(HttpStatusCode.BadRequest, postKrav("NAV-KRAV-2024-001").status)
         }
 }

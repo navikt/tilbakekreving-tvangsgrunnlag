@@ -29,25 +29,18 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import no.nav.security.token.support.v3.RequiredClaims
 import no.nav.security.token.support.v3.tokenValidationSupport
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.validerTvangsgrunnlagRequest
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TilbakekrevingBackendException
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
-import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
 import org.slf4j.LoggerFactory
 
 private const val MASKINPORTEN_ISSUER = "maskinporten"
 private val logger = LoggerFactory.getLogger("no.nav.tilbakekreving.tvangsgrunnlag.ConfigureRouting")
 
-private val KRAVIDENTIFIKATOR_FORMAT = "OB04\\d{1,64}".toRegex()
 private const val MASKINPORTEN_SCOPE = "nav:tilbakekreving/tvangsgrunnlag.read"
 
 @Serializable
@@ -58,15 +51,7 @@ data class Melding(
 fun Application.configureRouting(
     prometheusRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
     openTelemetry: OpenTelemetry = konfigurerOpenTelemetry(),
-    tvangsgrunnlagService: TvangsgrunnlagService =
-        TvangsgrunnlagService(
-            MidlertidigTilbakelosningClient(),
-            MidlertidigSkeKravClient(),
-            MidlertidigSafClient(),
-            MidlertidigJoarkClient(),
-            UtleveringsStatistikk(prometheusRegistry),
-        ),
-    tilbakekrevingBackendClient: TilbakekrevingBackendClient? = null,
+    tvangsgrunnlagService: TvangsgrunnlagService,
 ) {
     install(ContentNegotiation) {
         json()
@@ -81,6 +66,13 @@ fun Application.configureRouting(
         }
     }
     install(StatusPages) {
+        exception<TilbakekrevingBackendException> { call, cause ->
+            logger.error("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend for vedtakId=${cause.vedtakId}", cause)
+            call.respond(
+                HttpStatusCode.BadGateway,
+                Melding("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend"),
+            )
+        }
         exception<RequestValidationException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel: ${cause.reasons.joinToString(", ")}"))
         }
@@ -115,37 +107,6 @@ fun Application.configureRouting(
         authenticate(MASKINPORTEN_ISSUER) {
             post("/api/tilbakekreving/tvangsgrunnlag/v1") {
                 val request = call.receive<TvangsgrunnlagRequest>()
-
-                if (tilbakekrevingBackendClient != null) {
-                    val vedtakId =
-                        request.oppdragsgiversKravidentifikator
-                            .takeIf { KRAVIDENTIFIKATOR_FORMAT.matches(it) }
-                            ?.removePrefix("OB04")
-                            ?.toLongOrNull()
-                            ?.toString()
-                    if (vedtakId == null) {
-                        call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig oppdragsgiversKravidentifikator"))
-                        return@post
-                    }
-                    val vedtaksdokumenter =
-                        try {
-                            tilbakekrevingBackendClient.hentVedtaksdokumenter(vedtakId)
-                        } catch (exception: CancellationException) {
-                            throw exception
-                        } catch (exception: Exception) {
-                            logger.error("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend for vedtakId=$vedtakId", exception)
-                            call.respond(
-                                HttpStatusCode.BadGateway,
-                                Melding("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend"),
-                            )
-                            return@post
-                        }
-                    if (vedtaksdokumenter.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
-                        return@post
-                    }
-                    logger.info("Hentet vedtaksdokumenter fra tilbakekreving-backend for vedtakId=$vedtakId: $vedtaksdokumenter")
-                }
 
                 val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)
                 if (zip == null) {
