@@ -16,7 +16,7 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TexasClient
-import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagServiceImpl
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
 
 fun Application.module() {
@@ -43,7 +43,7 @@ fun Application.module() {
     configureRouting(
         prometheusRegistry = prometheusRegistry,
         tvangsgrunnlagService =
-            TvangsgrunnlagService(
+            TvangsgrunnlagServiceImpl(
                 HttpTilbakekrevingBackendClient(httpClient, baseUrl) { texasClient.hentMaskintoken(scope) },
                 MidlertidigTilbakelosningClient(),
                 MidlertidigSkeKravClient(),

@@ -12,27 +12,26 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/**
- * Orkestrerer hele hent-tvangsgrunnlag-flyten, jf. beskrivelsen i
- * https://navikt.github.io/tilbakekreving-api/openapi.yaml
- */
 class TilbakekrevingBackendException(
     val vedtakId: String,
     cause: Throwable,
 ) : RuntimeException("Kunne ikke hente vedtaksdokumenter for vedtakId=$vedtakId", cause)
 
-class TvangsgrunnlagService(
+interface TvangsgrunnlagService {
+    suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray?
+}
+
+class TvangsgrunnlagServiceImpl(
     private val tilbakekrevingBackendClient: TilbakekrevingBackendClient,
     private val tilbakelosningClient: TilbakelosningClient,
     private val skeKravClient: SkeKravClient,
     private val safClient: SafClient,
     private val joarkClient: JoarkClient,
     private val statistikk: UtleveringsStatistikk = UtleveringsStatistikk(),
-) {
-    private val logger = LoggerFactory.getLogger(TvangsgrunnlagService::class.java)
+) : TvangsgrunnlagService {
+    private val logger = LoggerFactory.getLogger(TvangsgrunnlagServiceImpl::class.java)
 
-    /** Returnerer null dersom tvangsgrunnlaget ikke finnes (eller ikke har dokumenter etter fraOgMedDato). */
-    suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
+    override suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? {
         val fraOgMedDato = request.fraOgMedDato
 
         val vedtakId =

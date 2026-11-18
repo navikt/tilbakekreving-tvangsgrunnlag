@@ -21,7 +21,7 @@ ingen spans, men tjenesten fungerer likevel som normalt.
 | 400 | Ugyldig forespørsel |
 | 404 | Tvangsgrunnlag ikke funnet |
 
-Flyten i `TvangsgrunnlagService`:
+Flyten i `TvangsgrunnlagServiceImpl`:
 
 1. Validerer request
 2. Verifiserer krav i tilbakeløsningen (eller sokos-ske-krav for skatteetatensKravidentifikator)

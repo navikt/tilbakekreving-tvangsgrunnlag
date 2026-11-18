@@ -16,8 +16,11 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TilbakekrevingBackendException
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagServiceImpl
 import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -61,14 +64,15 @@ class ConfigureRoutingTest {
             override suspend fun hentVedtaksdokumenter(vedtakId: String) = listOf(VedtaksdokumentReferanse("111", "1"))
         }
 
-    private val feilendeBackend =
-        object : TilbakekrevingBackendClient {
-            override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
+    private val feilendeService =
+        object : TvangsgrunnlagService {
+            override suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? =
+                throw TilbakekrevingBackendException("123456", RuntimeException("nede"))
         }
 
-    private fun testService(backend: TilbakekrevingBackendClient = backendMedDokumenter) =
-        TvangsgrunnlagService(
-            backend,
+    private fun testService() =
+        TvangsgrunnlagServiceImpl(
+            backendMedDokumenter,
             MidlertidigTilbakelosningClient(),
             MidlertidigSkeKravClient(),
             MidlertidigSafClient(),
@@ -178,7 +182,7 @@ class ConfigureRoutingTest {
 
     @Test
     fun `POST tvangsgrunnlag når tilbakekreving-backend feiler`() =
-        withAuthenticatedApplication(testService(feilendeBackend)) {
+        withAuthenticatedApplication(feilendeService) {
             assertEquals(HttpStatusCode.BadGateway, postKrav(kjentOppdragsgiversKravidentifikator).status)
         }
 
