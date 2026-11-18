@@ -9,15 +9,15 @@ import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
 
-interface FamilieTilbakeClient {
+interface TilbakekrevingBackendClient {
     suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse>
 }
 
-class HttpFamilieTilbakeClient(
+class HttpTilbakekrevingBackendClient(
     private val httpClient: HttpClient,
     private val baseUrl: String,
     private val hentAccessToken: suspend () -> String,
-) : FamilieTilbakeClient {
+) : TilbakekrevingBackendClient {
     override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> =
         httpClient
             .get("${baseUrl.trimEnd('/')}/api/v1/dokumenter/vedtak/$vedtakId") {

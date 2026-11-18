@@ -33,7 +33,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import no.nav.security.token.support.v3.RequiredClaims
 import no.nav.security.token.support.v3.tokenValidationSupport
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.FamilieTilbakeClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
@@ -66,7 +66,7 @@ fun Application.configureRouting(
             MidlertidigJoarkClient(),
             UtleveringsStatistikk(prometheusRegistry),
         ),
-    familieTilbakeClient: FamilieTilbakeClient? = null,
+    tilbakekrevingBackendClient: TilbakekrevingBackendClient? = null,
 ) {
     install(ContentNegotiation) {
         json()
@@ -116,7 +116,7 @@ fun Application.configureRouting(
             post("/api/tilbakekreving/tvangsgrunnlag/v1") {
                 val request = call.receive<TvangsgrunnlagRequest>()
 
-                if (familieTilbakeClient != null) {
+                if (tilbakekrevingBackendClient != null) {
                     val vedtakId = utledVedtakId(request.oppdragsgiversKravidentifikator)
                     if (vedtakId == null) {
                         call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig oppdragsgiversKravidentifikator"))
@@ -124,7 +124,7 @@ fun Application.configureRouting(
                     }
                     val vedtaksdokumenter =
                         try {
-                            familieTilbakeClient.hentVedtaksdokumenter(vedtakId)
+                            tilbakekrevingBackendClient.hentVedtaksdokumenter(vedtakId)
                         } catch (exception: CancellationException) {
                             throw exception
                         } catch (exception: Exception) {

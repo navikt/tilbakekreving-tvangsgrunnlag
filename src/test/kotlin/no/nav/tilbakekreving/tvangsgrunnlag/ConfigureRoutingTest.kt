@@ -11,7 +11,7 @@ import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.FamilieTilbakeClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
@@ -157,8 +157,8 @@ class ConfigureRoutingTest {
             assertEquals(HttpStatusCode.NotFound, response.status)
         }
 
-    private fun withFamilieTilbake(
-        client: FamilieTilbakeClient,
+    private fun withTilbakekrevingBackend(
+        client: TilbakekrevingBackendClient,
         block: suspend ApplicationTestBuilder.() -> Unit,
     ) = testApplication {
         environment {
@@ -184,7 +184,7 @@ class ConfigureRoutingTest {
                     MidlertidigSafClient(),
                     MidlertidigJoarkClient(),
                 )
-            configureRouting(tvangsgrunnlagService = service, familieTilbakeClient = client)
+            configureRouting(tvangsgrunnlagService = service, tilbakekrevingBackendClient = client)
         }
         block()
     }
@@ -199,14 +199,14 @@ class ConfigureRoutingTest {
     @Test
     fun `POST tvangsgrunnlag med tilbakekreving-backend når vedtaksdokumenter finnes`() {
         var mottattVedtakId: String? = null
-        val familieTilbake =
-            object : FamilieTilbakeClient {
+        val tilbakekrevingBackend =
+            object : TilbakekrevingBackendClient {
                 override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> {
                     mottattVedtakId = vedtakId
                     return listOf(VedtaksdokumentReferanse("111", "1"))
                 }
             }
-        withFamilieTilbake(familieTilbake) {
+        withTilbakekrevingBackend(tilbakekrevingBackend) {
             val response = postKrav("OB04000123456")
             assertEquals(HttpStatusCode.OK, response.status)
             assertEquals(ContentType.Application.Zip, response.contentType()?.withoutParameters())
@@ -216,8 +216,8 @@ class ConfigureRoutingTest {
 
     @Test
     fun `POST tvangsgrunnlag med tilbakekreving-backend når listen er tom`() =
-        withFamilieTilbake(
-            object : FamilieTilbakeClient {
+        withTilbakekrevingBackend(
+            object : TilbakekrevingBackendClient {
                 override suspend fun hentVedtaksdokumenter(vedtakId: String) = emptyList<VedtaksdokumentReferanse>()
             },
         ) {
@@ -226,8 +226,8 @@ class ConfigureRoutingTest {
 
     @Test
     fun `POST tvangsgrunnlag med tilbakekreving-backend ved feil og ugyldig kravidentifikator`() =
-        withFamilieTilbake(
-            object : FamilieTilbakeClient {
+        withTilbakekrevingBackend(
+            object : TilbakekrevingBackendClient {
                 override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
             },
         ) {

@@ -17,9 +17,9 @@ spec:
         - application: tilbakekreving-backend
           namespace: teamfamilie
   env:
-    - name: FAMILIE_TILBAKE_URL
+    - name: TILBAKEKREVING_BACKEND_URL
       value: "http://tilbakekreving-backend.teamfamilie"
-    - name: FAMILIE_TILBAKE_SCOPE
+    - name: TILBAKEKREVING_BACKEND_SCOPE
       value: "api://dev-gcp.teamfamilie.tilbakekreving-backend/.default"
   maskinporten:
     enabled: true

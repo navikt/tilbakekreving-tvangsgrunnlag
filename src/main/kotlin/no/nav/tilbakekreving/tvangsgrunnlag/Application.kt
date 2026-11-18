@@ -8,13 +8,13 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import kotlinx.serialization.json.Json
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.HttpFamilieTilbakeClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.HttpTilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TexasClient
 
 fun Application.module() {
     val config = environment.config
-    val baseUrl = config.property("familieTilbake.baseUrl").getString()
-    val scope = config.property("familieTilbake.scope").getString()
+    val baseUrl = config.property("tilbakekrevingBackend.baseUrl").getString()
+    val scope = config.property("tilbakekrevingBackend.scope").getString()
     val tokenEndpoint = config.property("texas.tokenEndpoint").getString()
     val httpClient =
         HttpClient(CIO) {
@@ -32,6 +32,6 @@ fun Application.module() {
 
     val texasClient = TexasClient(httpClient, tokenEndpoint)
     configureRouting(
-        familieTilbakeClient = HttpFamilieTilbakeClient(httpClient, baseUrl) { texasClient.hentMaskintoken(scope) },
+        tilbakekrevingBackendClient = HttpTilbakekrevingBackendClient(httpClient, baseUrl) { texasClient.hentMaskintoken(scope) },
     )
 }
