@@ -15,7 +15,7 @@ fun Application.module() {
     val config = environment.config
     val baseUrl = config.property("familieTilbake.baseUrl").getString()
     val scope = config.property("familieTilbake.scope").getString()
-    val tokenEndpoint = config.property("familieTilbake.tokenEndpoint").getString()
+    val tokenEndpoint = config.property("texas.tokenEndpoint").getString()
     val httpClient =
         HttpClient(CIO) {
             followRedirects = false
