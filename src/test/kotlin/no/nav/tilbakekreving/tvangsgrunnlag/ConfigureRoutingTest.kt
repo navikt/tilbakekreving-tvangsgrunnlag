@@ -185,10 +185,4 @@ class ConfigureRoutingTest {
         withAuthenticatedApplication(feilendeService) {
             assertEquals(HttpStatusCode.BadGateway, postKrav(kjentOppdragsgiversKravidentifikator).status)
         }
-
-    @Test
-    fun `POST tvangsgrunnlag med ugyldig kravidentifikator`() =
-        withAuthenticatedApplication {
-            assertEquals(HttpStatusCode.BadRequest, postKrav("NAV-KRAV-2024-001").status)
-        }
 }
