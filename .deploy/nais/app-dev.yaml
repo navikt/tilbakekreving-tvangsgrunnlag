@@ -14,13 +14,13 @@ spec:
   accessPolicy:
     outbound:
       rules:
-        - application: familie-tilbake
+        - application: tilbakekreving-backend
           namespace: teamfamilie
   env:
     - name: FAMILIE_TILBAKE_URL
-      value: "http://familie-tilbake.teamfamilie"
+      value: "http://tilbakekreving-backend.teamfamilie"
     - name: FAMILIE_TILBAKE_SCOPE
-      value: "api://dev-gcp.teamfamilie.familie-tilbake/.default"
+      value: "api://dev-gcp.teamfamilie.tilbakekreving-backend/.default"
   maskinporten:
     enabled: true
     scopes:

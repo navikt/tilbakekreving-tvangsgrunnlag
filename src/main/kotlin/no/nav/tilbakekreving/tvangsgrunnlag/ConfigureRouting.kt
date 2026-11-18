@@ -128,15 +128,15 @@ fun Application.configureRouting(
                         } catch (exception: CancellationException) {
                             throw exception
                         } catch (exception: Exception) {
-                            logger.error("Kunne ikke hente vedtaksdokumenter fra familie-tilbake for vedtakId=$vedtakId", exception)
-                            call.respond(HttpStatusCode.BadGateway, Melding("Kunne ikke hente vedtaksdokumenter fra familie-tilbake"))
+                            logger.error("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend for vedtakId=$vedtakId", exception)
+                            call.respond(HttpStatusCode.BadGateway, Melding("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend"))
                             return@post
                         }
                     if (vedtaksdokumenter.isEmpty()) {
                         call.respond(HttpStatusCode.NotFound, Melding("Tvangsgrunnlag ikke funnet"))
                         return@post
                     }
-                    logger.info("Hentet vedtaksdokumenter fra familie-tilbake for vedtakId=$vedtakId: $vedtaksdokumenter")
+                    logger.info("Hentet vedtaksdokumenter fra tilbakekreving-backend for vedtakId=$vedtakId: $vedtaksdokumenter")
                 }
 
                 val zip = tvangsgrunnlagService.hentTvangsgrunnlag(request)

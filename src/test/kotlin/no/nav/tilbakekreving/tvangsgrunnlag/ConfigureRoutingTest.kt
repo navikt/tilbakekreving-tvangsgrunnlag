@@ -197,7 +197,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag med familie-tilbake når vedtaksdokumenter finnes`() {
+    fun `POST tvangsgrunnlag med tilbakekreving-backend når vedtaksdokumenter finnes`() {
         var mottattVedtakId: String? = null
         val familieTilbake =
             object : FamilieTilbakeClient {
@@ -215,7 +215,7 @@ class ConfigureRoutingTest {
     }
 
     @Test
-    fun `POST tvangsgrunnlag med familie-tilbake når listen er tom`() =
+    fun `POST tvangsgrunnlag med tilbakekreving-backend når listen er tom`() =
         withFamilieTilbake(
             object : FamilieTilbakeClient {
                 override suspend fun hentVedtaksdokumenter(vedtakId: String) = emptyList<VedtaksdokumentReferanse>()
@@ -225,7 +225,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag med familie-tilbake ved feil og ugyldig kravidentifikator`() =
+    fun `POST tvangsgrunnlag med tilbakekreving-backend ved feil og ugyldig kravidentifikator`() =
         withFamilieTilbake(
             object : FamilieTilbakeClient {
                 override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
