@@ -11,11 +11,11 @@ import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService

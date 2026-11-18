@@ -25,7 +25,6 @@ class TexasClient(
                 ) {
                     expectSuccess = true
                 }.body<TokenResponse>()
-        check(response.accessToken.isNotBlank()) { "Texas returnerte et tomt access token" }
         return response.accessToken
     }
 

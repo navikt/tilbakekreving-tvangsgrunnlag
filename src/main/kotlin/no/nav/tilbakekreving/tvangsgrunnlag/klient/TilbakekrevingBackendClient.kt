@@ -20,7 +20,7 @@ class HttpTilbakekrevingBackendClient(
 ) : TilbakekrevingBackendClient {
     override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> =
         httpClient
-            .get("${baseUrl.trimEnd('/')}/api/v1/dokumenter/vedtak/$vedtakId") {
+            .get("$baseUrl/api/v1/dokumenter/vedtak/$vedtakId") {
                 expectSuccess = true
                 bearerAuth(hentAccessToken())
                 accept(ContentType.Application.Json)

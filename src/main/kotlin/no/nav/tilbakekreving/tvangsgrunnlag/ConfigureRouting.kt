@@ -33,13 +33,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 import no.nav.security.token.support.v3.RequiredClaims
 import no.nav.security.token.support.v3.tokenValidationSupport
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.utledVedtakId
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.validerTvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
@@ -48,6 +47,7 @@ import org.slf4j.LoggerFactory
 private const val MASKINPORTEN_ISSUER = "maskinporten"
 private val logger = LoggerFactory.getLogger("no.nav.tilbakekreving.tvangsgrunnlag.ConfigureRouting")
 
+private val KRAVIDENTIFIKATOR_FORMAT = "OB04\\d{1,64}".toRegex()
 private const val MASKINPORTEN_SCOPE = "nav:tilbakekreving/tvangsgrunnlag.read"
 
 @Serializable
@@ -117,7 +117,12 @@ fun Application.configureRouting(
                 val request = call.receive<TvangsgrunnlagRequest>()
 
                 if (tilbakekrevingBackendClient != null) {
-                    val vedtakId = utledVedtakId(request.oppdragsgiversKravidentifikator)
+                    val vedtakId =
+                        request.oppdragsgiversKravidentifikator
+                            .takeIf { KRAVIDENTIFIKATOR_FORMAT.matches(it) }
+                            ?.removePrefix("OB04")
+                            ?.toLongOrNull()
+                            ?.toString()
                     if (vedtakId == null) {
                         call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig oppdragsgiversKravidentifikator"))
                         return@post
