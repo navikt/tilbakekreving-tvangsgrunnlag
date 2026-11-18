@@ -129,7 +129,10 @@ fun Application.configureRouting(
                             throw exception
                         } catch (exception: Exception) {
                             logger.error("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend for vedtakId=$vedtakId", exception)
-                            call.respond(HttpStatusCode.BadGateway, Melding("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend"))
+                            call.respond(
+                                HttpStatusCode.BadGateway,
+                                Melding("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend"),
+                            )
                             return@post
                         }
                     if (vedtaksdokumenter.isEmpty()) {
