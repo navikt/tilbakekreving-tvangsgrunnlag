@@ -37,6 +37,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("no.nav.security:mock-oauth2-server:6.1.1")
     testImplementation(ktorLibs.server.testHost)
 }

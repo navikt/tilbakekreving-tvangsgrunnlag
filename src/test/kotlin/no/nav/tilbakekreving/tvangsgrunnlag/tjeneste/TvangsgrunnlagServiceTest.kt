@@ -6,21 +6,14 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
-import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
+import no.nav.tilbakekreving.tvangsgrunnlag.tvangsgrunnlagRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class TvangsgrunnlagServiceTest {
-    private val request =
-        TvangsgrunnlagRequest(
-            skyldner = "12345678901",
-            oppdragsgiversKravidentifikator = "OB04000123456",
-            skatteetatensKravidentifikator = "550e8400-e29b-41d4-a716-446655440000",
-        )
-
     private fun service(backend: TilbakekrevingBackendClient) =
         TvangsgrunnlagServiceImpl(
             backend,
@@ -42,7 +35,7 @@ class TvangsgrunnlagServiceTest {
                     }
                 }
 
-            service(backend).hentTvangsgrunnlag(request)
+            service(backend).hentTvangsgrunnlag(tvangsgrunnlagRequest())
             assertEquals("123456", mottattVedtakId)
         }
 
@@ -54,7 +47,7 @@ class TvangsgrunnlagServiceTest {
                     override suspend fun hentVedtaksdokumenter(vedtakId: String) = emptyList<VedtaksdokumentReferanse>()
                 }
 
-            assertNull(service(backend).hentTvangsgrunnlag(request))
+            assertNull(service(backend).hentTvangsgrunnlag(tvangsgrunnlagRequest()))
         }
 
     @Test
@@ -65,6 +58,6 @@ class TvangsgrunnlagServiceTest {
                     override suspend fun hentVedtaksdokumenter(vedtakId: String): List<VedtaksdokumentReferanse> = error("nede")
                 }
 
-            assertFailsWith<TilbakekrevingBackendException> { service(backend).hentTvangsgrunnlag(request) }
+            assertFailsWith<TilbakekrevingBackendException> { service(backend).hentTvangsgrunnlag(tvangsgrunnlagRequest()) }
         }
 }

@@ -59,20 +59,11 @@ class ConfigureRoutingTest {
         }
         """.trimIndent()
 
-    private val backendMedDokumenter =
-        object : TilbakekrevingBackendClient {
-            override suspend fun hentVedtaksdokumenter(vedtakId: String) = listOf(VedtaksdokumentReferanse("111", "1"))
-        }
-
-    private val feilendeService =
-        object : TvangsgrunnlagService {
-            override suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? =
-                throw TilbakekrevingBackendException("123456", RuntimeException("nede"))
-        }
-
     private fun testService() =
         TvangsgrunnlagServiceImpl(
-            backendMedDokumenter,
+            object : TilbakekrevingBackendClient {
+                override suspend fun hentVedtaksdokumenter(vedtakId: String) = listOf(VedtaksdokumentReferanse("111", "1"))
+            },
             MidlertidigTilbakelosningClient(),
             MidlertidigSkeKravClient(),
             MidlertidigSafClient(),
@@ -173,16 +164,21 @@ class ConfigureRoutingTest {
             assertEquals(HttpStatusCode.NotFound, response.status)
         }
 
-    private suspend fun ApplicationTestBuilder.postKrav(oppdragsgiversKravidentifikator: String) =
-        client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
-            bearerAuth(token())
-            contentType(ContentType.Application.Json)
-            setBody(kravRequestJson(oppdragsgiversKravidentifikator = oppdragsgiversKravidentifikator))
-        }
-
     @Test
     fun `POST tvangsgrunnlag når tilbakekreving-backend feiler`() =
-        withAuthenticatedApplication(feilendeService) {
-            assertEquals(HttpStatusCode.BadGateway, postKrav(kjentOppdragsgiversKravidentifikator).status)
+        withAuthenticatedApplication(
+            object : TvangsgrunnlagService {
+                override suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? =
+                    throw TilbakekrevingBackendException("123456", RuntimeException("nede"))
+            },
+        ) {
+            val response =
+                client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
+                    bearerAuth(token())
+                    contentType(ContentType.Application.Json)
+                    setBody(kravRequestJson())
+                }
+
+            assertEquals(HttpStatusCode.BadGateway, response.status)
         }
 }
