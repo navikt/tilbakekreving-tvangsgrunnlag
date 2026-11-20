@@ -15,7 +15,12 @@ import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
 import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
+import no.nav.tilbakekreving.tvangsgrunnlag.klient.TilbakekrevingBackendClient
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
+import no.nav.tilbakekreving.tvangsgrunnlag.modell.VedtaksdokumentReferanse
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TilbakekrevingBackendException
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagServiceImpl
 import java.util.zip.ZipInputStream
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -26,7 +31,7 @@ import kotlin.test.assertTrue
 class ConfigureRoutingTest {
     private val mockOAuth2Server = MockOAuth2Server()
     private val kjentSkyldner = "12345678901"
-    private val kjentOppdragsgiversKravidentifikator = "NAV-KRAV-2024-001"
+    private val kjentOppdragsgiversKravidentifikator = "OB04000123456"
     private val kjentSkatteetatensKravidentifikator = "550e8400-e29b-41d4-a716-446655440000"
 
     @BeforeTest
@@ -55,23 +60,28 @@ class ConfigureRoutingTest {
         """.trimIndent()
 
     private fun testService() =
-        TvangsgrunnlagService(
+        TvangsgrunnlagServiceImpl(
+            object : TilbakekrevingBackendClient {
+                override suspend fun hentVedtaksdokumenter(vedtakId: String) = listOf(VedtaksdokumentReferanse("111", "1"))
+            },
             MidlertidigTilbakelosningClient(),
             MidlertidigSkeKravClient(),
             MidlertidigSafClient(),
             MidlertidigJoarkClient(),
         )
 
-    private fun withAuthenticatedApplication(block: suspend ApplicationTestBuilder.() -> Unit) =
-        testApplication {
-            environment {
-                config = tokenValidationConfig()
-            }
-            application {
-                configureRouting(tvangsgrunnlagService = testService())
-            }
-            block()
+    private fun withAuthenticatedApplication(
+        service: TvangsgrunnlagService = testService(),
+        block: suspend ApplicationTestBuilder.() -> Unit,
+    ) = testApplication {
+        environment {
+            config = tokenValidationConfig()
         }
+        application {
+            configureRouting(tvangsgrunnlagService = service)
+        }
+        block()
+    }
 
     private fun tokenValidationConfig() =
         MapApplicationConfig().apply {
@@ -91,7 +101,7 @@ class ConfigureRoutingTest {
             ).serialize()
 
     @Test
-    fun `POST tvangsgrunnlag avviser manglende token, ugyldig token og token uten påkrevd scope`() =
+    fun `POST tvangsgrunnlag med manglende token, ugyldig token og token uten påkrevd scope`() =
         withAuthenticatedApplication {
             listOf(null, "not-a-token", token(scope = "nav:tilbakekreving/tvangsgrunnlag.write")).forEach { token ->
                 val response =
@@ -104,7 +114,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 200 og zip for kjent krav`() =
+    fun `POST tvangsgrunnlag for kjent krav`() =
         withAuthenticatedApplication {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
@@ -124,7 +134,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 400 for tom skyldner`() =
+    fun `POST tvangsgrunnlag med tom skyldner`() =
         withAuthenticatedApplication {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
@@ -137,7 +147,7 @@ class ConfigureRoutingTest {
         }
 
     @Test
-    fun `POST tvangsgrunnlag returner 404 for ukjent krav`() =
+    fun `POST tvangsgrunnlag for ukjent krav`() =
         withAuthenticatedApplication {
             val response =
                 client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
@@ -152,5 +162,23 @@ class ConfigureRoutingTest {
                 }
 
             assertEquals(HttpStatusCode.NotFound, response.status)
+        }
+
+    @Test
+    fun `POST tvangsgrunnlag når tilbakekreving-backend feiler`() =
+        withAuthenticatedApplication(
+            object : TvangsgrunnlagService {
+                override suspend fun hentTvangsgrunnlag(request: TvangsgrunnlagRequest): ByteArray? =
+                    throw TilbakekrevingBackendException("123456", RuntimeException("nede"))
+            },
+        ) {
+            val response =
+                client.post("/api/tilbakekreving/tvangsgrunnlag/v1") {
+                    bearerAuth(token())
+                    contentType(ContentType.Application.Json)
+                    setBody(kravRequestJson())
+                }
+
+            assertEquals(HttpStatusCode.BadGateway, response.status)
         }
 }

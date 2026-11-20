@@ -28,6 +28,8 @@ dependencies {
     implementation(ktorLibs.server.metrics.micrometer)
     implementation(ktorLibs.server.requestValidation)
     implementation(ktorLibs.server.statusPages)
+    implementation(ktorLibs.client.cio)
+    implementation(ktorLibs.client.contentNegotiation)
     implementation("no.nav.security:token-validation-ktor-v3:6.0.14")
     implementation("io.micrometer:micrometer-registry-prometheus:1.17.1")
     implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:2.18.1-alpha")
@@ -35,6 +37,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("no.nav.security:mock-oauth2-server:6.1.1")
     testImplementation(ktorLibs.server.testHost)
 }

@@ -32,16 +32,15 @@ import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
 import kotlinx.serialization.Serializable
 import no.nav.security.token.support.v3.RequiredClaims
 import no.nav.security.token.support.v3.tokenValidationSupport
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigJoarkClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSafClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigSkeKravClient
-import no.nav.tilbakekreving.tvangsgrunnlag.klient.MidlertidigTilbakelosningClient
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.TvangsgrunnlagRequest
 import no.nav.tilbakekreving.tvangsgrunnlag.modell.validerTvangsgrunnlagRequest
+import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TilbakekrevingBackendException
 import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.TvangsgrunnlagService
-import no.nav.tilbakekreving.tvangsgrunnlag.tjeneste.UtleveringsStatistikk
+import org.slf4j.LoggerFactory
 
 private const val MASKINPORTEN_ISSUER = "maskinporten"
+private val logger = LoggerFactory.getLogger("no.nav.tilbakekreving.tvangsgrunnlag.ConfigureRouting")
+
 private const val MASKINPORTEN_SCOPE = "nav:tilbakekreving/tvangsgrunnlag.read"
 
 @Serializable
@@ -52,14 +51,7 @@ data class Melding(
 fun Application.configureRouting(
     prometheusRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
     openTelemetry: OpenTelemetry = konfigurerOpenTelemetry(),
-    tvangsgrunnlagService: TvangsgrunnlagService =
-        TvangsgrunnlagService(
-            MidlertidigTilbakelosningClient(),
-            MidlertidigSkeKravClient(),
-            MidlertidigSafClient(),
-            MidlertidigJoarkClient(),
-            UtleveringsStatistikk(prometheusRegistry),
-        ),
+    tvangsgrunnlagService: TvangsgrunnlagService,
 ) {
     install(ContentNegotiation) {
         json()
@@ -74,6 +66,13 @@ fun Application.configureRouting(
         }
     }
     install(StatusPages) {
+        exception<TilbakekrevingBackendException> { call, cause ->
+            logger.error("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend for vedtakId=${cause.vedtakId}", cause)
+            call.respond(
+                HttpStatusCode.BadGateway,
+                Melding("Kunne ikke hente vedtaksdokumenter fra tilbakekreving-backend"),
+            )
+        }
         exception<RequestValidationException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, Melding("Ugyldig forespørsel: ${cause.reasons.joinToString(", ")}"))
         }

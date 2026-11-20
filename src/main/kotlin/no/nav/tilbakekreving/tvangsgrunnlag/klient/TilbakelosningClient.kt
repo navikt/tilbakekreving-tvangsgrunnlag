@@ -43,7 +43,7 @@ class MidlertidigTilbakelosningClient : TilbakelosningClient {
         // Testdata frem til ekte integrasjon er på plass.
         private val KJENTE_KRAV =
             setOf(
-                Triple("12345678901", "NAV-KRAV-2024-001", "550e8400-e29b-41d4-a716-446655440000"),
+                Triple("12345678901", "OB04000123456", "550e8400-e29b-41d4-a716-446655440000"),
             )
     }
 }

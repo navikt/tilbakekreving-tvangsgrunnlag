@@ -8,6 +8,19 @@ metadata:
 
 spec:
   image: {{image}}
+  azure:
+    application:
+      enabled: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: tilbakekreving-backend
+          namespace: teamfamilie
+  env:
+    - name: TILBAKEKREVING_BACKEND_URL
+      value: "http://tilbakekreving-backend.teamfamilie"
+    - name: TILBAKEKREVING_BACKEND_SCOPE
+      value: "api://dev-gcp.teamfamilie.tilbakekreving-backend/.default"
   maskinporten:
     enabled: true
     scopes:
