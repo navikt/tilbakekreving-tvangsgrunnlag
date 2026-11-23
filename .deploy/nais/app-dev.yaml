@@ -15,12 +15,12 @@ spec:
     outbound:
       rules:
         - application: tilbakekreving-backend
-          namespace: teamfamilie
+          namespace: tilbake
   env:
     - name: TILBAKEKREVING_BACKEND_URL
-      value: "http://tilbakekreving-backend.teamfamilie"
+      value: "http://tilbakekreving-backend.tilbake"
     - name: TILBAKEKREVING_BACKEND_SCOPE
-      value: "api://dev-gcp.teamfamilie.tilbakekreving-backend/.default"
+      value: "api://dev-gcp.tilbake.tilbakekreving-backend/.default"
   maskinporten:
     enabled: true
     scopes:
